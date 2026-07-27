@@ -1,0 +1,30 @@
+{
+  "name": "safestep",
+  "version": "1.0.0",
+  "description": "SafeStep adalah platform berbasis Web Responsive yang dirancang untuk meningkatkan rasa aman dan memberikan perlindungan bagi perempuan saat beraktivitas di ruang publik. Platform ini menyediakan solusi terpadu mulai dari pencegahan proaktif (rekomendasi rute aman & prediksi risiko) hingga penanganan darurat (tombol SOS & pelacakan live).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/desiwulan99/SafeStep.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/desiwulan99/SafeStep/issues"
+  },
+  "homepage": "https://github.com/desiwulan99/SafeStep#readme",
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "vite": "^8.1.5"
+  }
+}
