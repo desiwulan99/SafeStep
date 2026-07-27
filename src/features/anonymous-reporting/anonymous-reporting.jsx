@@ -1,50 +1,50 @@
 import React, { useState } from "react";
-import { useGeolocation } from "../../../hooks/useGeolocation";
+// import { useGeolocation } from "../../../hooks/useGeolocation";
 
 export const ReportForm = () => {
-  const { location, error: geoError, loading: geoLoading } = useGeolocation();
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [manualAddress, setManualAddress] = useState("");
-  const [validationError, setValidationError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+//   const { location, error: geoError, loading: geoLoading } = useGeolocation();
+//   const [category, setCategory] = useState("");
+//   const [description, setDescription] = useState("");
+//   const [manualAddress, setManualAddress] = useState("");
+//   const [validationError, setValidationError] = useState("");
+//   const [successMessage, setSuccessMessage] = useState("");
+//   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!category) {
-      setValidationError("Pilih kategori insiden terlebih dahulu.");
-      return;
-    }
-    setValidationError("");
-    setIsSubmitting(true);
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+//     if (!category) {
+//       setValidationError("Pilih kategori insiden terlebih dahulu.");
+//       return;
+//     }
+//     setValidationError("");
+//     setIsSubmitting(true);
 
-    const reportPayload = {
-      category,
-      description,
-      location: {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        manualAddress: manualAddress.trim() || null,
-      },
-      timestamp: new Date().toISOString(),
-    };
+//     const reportPayload = {
+//       category,
+//       description,
+//       location: {
+//         latitude: location.latitude,
+//         longitude: location.longitude,
+//         manualAddress: manualAddress.trim() || null,
+//       },
+//       timestamp: new Date().toISOString(),
+//     };
 
-    console.log("Payload Laporan Anonim SafeStep:", reportPayload);
+//     console.log("Payload Laporan Anonim SafeStep:", reportPayload);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSuccessMessage("Laporan anonim Anda berhasil dikirim.");
-      setCategory("");
-      setDescription("");
-      setManualAddress("");
-    }, 1000);
+//     setTimeout(() => {
+//       setIsSubmitting(false);
+//       setSuccessMessage("Laporan anonim Anda berhasil dikirim.");
+//       setCategory("");
+//       setDescription("");
+//       setManualAddress("");
+//     }, 1000);
   };
 
   return (
     <div>
       <header className="top-bar">
-        <h1>Laporkan Insiden</h1>
+        <h1 style={{ margin: 0 }}>Laporkan Insiden</h1>
         <div className="top-badge">
           <img src="#" alt="notification"/>
           <img src="#" alt="profile"/>
@@ -54,22 +54,35 @@ export const ReportForm = () => {
       <p>Laporan ini anonim, identitas Anda tidak akan ditampilkan ke publik.</p>
 
       <content className="form-container">
-        <div className="category-box">
+        <section className="category-box">
           <h3>Pilih Kategori</h3>
-          
-        </div>
+          <p>Catcalling</p>
+          <p>Mengikuti</p>
+          <p>Kontak Fisik</p>
+          <p>Lainnya</p>
+        </section>
         
-        <div className="location-time-box">
+        <section className="location-time-box">
+            <h3>Lokasi & Waktu</h3>
+            <div>
+                Lokasi sekarang
+            </div>
+            <div>
+                Waktu sekarang
+            </div>
+        </section>
 
-        </div>
+        <section className="description-box">
+            <h3>Deskripsi Kejadian</h3>
+            <p>Ceritakan detail kejadian secara singkat untuk membantu pemetaan zona rawan.</p>
+            <textarea placeholder="Tuliskan apa yang terjadi..." rows={4} />
+        </section>
 
-        <div className="description-box">
-
-        </div>
-
-        <div className="proofment-box">
-
-        </div>
+        <section className="proofment-box">
+            <h3>Bukti Pendukung</h3>
+            <input type="file" accept="image/*,video/*" 
+            placeholder="Klik untuk unggah foto atau video\nFormat: JPG, PNG, MP4 (Max. 20MB)" />
+        </section>
       </content>
 
       <button onClick={handleSubmit} disabled={isSubmitting}>
@@ -77,4 +90,3 @@ export const ReportForm = () => {
       </button>
     </div>
   );
-};
