@@ -68,7 +68,7 @@ export const HomePage = ({ onNavigate }) => {
           <div style={styles.leftColumn}>
             <MapSection />
             <ReportBanner
-              onReportClick={() => handleNavigation('Laporkan Insiden', '/report')}
+              onReportClick={() => handleNavigation('Lapor', '/report')}
             />
           </div>
 
@@ -93,10 +93,10 @@ export const HomePage = ({ onNavigate }) => {
                 </svg>
               }
               iconBg="#e0e7ff"
-              title="Safe Route"
+              title="Peta Aman"
               description="Find the safest way home based on community data."
               actionText="Pilih Rute →"
-              onClick={() => handleNavigation('Safe Route', '/safe-route')}
+              onClick={() => handleNavigation('Peta Aman', '/safe-route')}
             />
 
             <RecentActivity
