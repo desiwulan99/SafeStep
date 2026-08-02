@@ -1,6 +1,5 @@
 import React from 'react';
-// Jika gambar disimpan di src/assets/mascot.png
-import mascotImg from '../../assets/mascot.png';
+import mascotImg from 'src/assets/image/mascot.png';
 
 export const LiveGuardianCard = ({ onClick }) => {
   return (
@@ -17,7 +16,6 @@ export const LiveGuardianCard = ({ onClick }) => {
         </p>
       </div>
 
-      {/* Tampilan Gambar Maskot Asli SafeStep */}
       <div style={styles.mascotWrapper}>
         <img 
           src={mascotImg} 
