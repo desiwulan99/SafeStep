@@ -48,7 +48,7 @@ export const Sidebar = ({ activeTab, onSelectMenu, isOpen, onClose }) => {
                 key={item.name}
                 onClick={() => {
                   onSelectMenu(item.name, item.path);
-                  onClose();
+                  if (onClose) onClose();
                 }}
                 style={{
                   ...styles.navItem,
