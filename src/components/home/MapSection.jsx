@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 export const MapSection = () => {
-  const [locationName, setLocationName] = useState('Stasiun Manggarai');
-  const [coords, setCoords] = useState({ lat: -6.2098, lng: 106.8499 });
+  const [locationName, setLocationName] = useState('Depok, Jawa Barat');
+  const [coords, setCoords] = useState({ lat: -6.4025, lng: 106.7942 });
   const [loading, setLoading] = useState(true);
   const [statusText, setStatusText] = useState('Mendeteksi GPS...');
 
@@ -32,7 +32,7 @@ export const MapSection = () => {
                 data.address.city_district ||
                 data.address.city ||
                 data.address.town ||
-                'Area Terdeteksi';
+                'Depok';
               setLocationName(name);
             }
           } catch (err) {
@@ -43,19 +43,15 @@ export const MapSection = () => {
         },
         (error) => {
           setLoading(false);
-          if (error.code === error.PERMISSION_DENIED) {
-            setStatusText('Izin GPS Ditolak');
-            setLocationName('Stasiun Manggarai');
-          } else {
-            setStatusText('Gagal Ambil GPS');
-            setLocationName('Stasiun Manggarai');
-          }
+          setStatusText('Lokasi saat ini');
+          setLocationName('Depok');
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       setLoading(false);
-      setStatusText('GPS Tidak Didukung');
+      setStatusText('Lokasi saat ini');
+      setLocationName('Depok');
     }
   }, []);
 
@@ -72,11 +68,15 @@ export const MapSection = () => {
           style={{ border: 0 }}
         />
 
+        <div style={styles.gradientOverlay} />
+
         <div style={styles.overlayCard}>
-          <div style={styles.overlaySubtitle}>
+          <span style={styles.overlaySubtitle}>
             {loading ? 'Mencari GPS...' : statusText}
-          </div>
-          <div style={styles.overlayTitle}>{locationName}</div>
+          </span>
+          <span style={styles.overlayTitle}>
+            {locationName}
+          </span>
         </div>
       </div>
     </div>
@@ -96,26 +96,43 @@ const styles = {
     backgroundColor: '#e5e7eb',
     position: 'relative',
   },
+  gradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '90px',
+    background: 'linear-gradient(to top, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%)',
+    pointerEvents: 'none',
+    zIndex: 2,
+  },
   overlayCard: {
     position: 'absolute',
     bottom: '16px',
     left: '16px',
     backgroundColor: 'transparent',
-    padding: '0',
+    padding: 0,
     zIndex: 3,
     pointerEvents: 'none',
-    textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
   },
   overlaySubtitle: {
-    fontSize: '12px',
-    color: '#ffffff',
+    fontSize: '13px',
     fontWeight: '500',
-    display: 'block',
+    color: '#ffffff',
+    margin: 0,
+    padding: 0,
+    lineHeight: '1.2',
+    opacity: 0.9,
   },
   overlayTitle: {
-    margin: '2px 0 0 0',
-    fontSize: '18px',
-    fontWeight: '800',
+    fontSize: '20px',
+    fontWeight: '700',
     color: '#ffffff',
+    margin: 0,
+    padding: 0,
+    lineHeight: '1.2',
   },
 };
