@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 export const MapSection = () => {
-  const [locationName, setLocationName] = useState('Stasiun Manggarai');
-  const [coords, setCoords] = useState({ lat: -6.2098, lng: 106.8499 }); // Default Stasiun Manggarai
+  const [locationName, setLocationName] = useState('Depok, Jawa Barat');
+  const [coords, setCoords] = useState({ lat: -6.4025, lng: 106.7942 });
   const [loading, setLoading] = useState(true);
   const [statusText, setStatusText] = useState('Mendeteksi GPS...');
 
@@ -15,7 +15,6 @@ export const MapSection = () => {
           setStatusText('Lokasi saat ini');
 
           try {
-            // Mengambil nama lokasi dari koordinat GPS
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
               {
@@ -33,39 +32,32 @@ export const MapSection = () => {
                 data.address.city_district ||
                 data.address.city ||
                 data.address.town ||
-                'Area Terdeteksi';
+                'Depok';
               setLocationName(name);
             }
           } catch (err) {
-            console.warn('Gagal fetch nama lokasi:', err);
             setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
           } finally {
             setLoading(false);
           }
         },
         (error) => {
-          console.warn('Geolocation Error:', error.message);
           setLoading(false);
-          if (error.code === error.PERMISSION_DENIED) {
-            setStatusText('Izin GPS Ditolak');
-            setLocationName('Stasiun Manggarai (Default)');
-          } else {
-            setStatusText('Gagal Ambil GPS');
-            setLocationName('Stasiun Manggarai (Default)');
-          }
+          setStatusText('Lokasi saat ini');
+          setLocationName('Depok');
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       setLoading(false);
-      setStatusText('GPS Tidak Didukung');
+      setStatusText('Lokasi saat ini');
+      setLocationName('Depok');
     }
   }, []);
 
   return (
     <div style={styles.container}>
       <div style={styles.mapFrame}>
-        {/* Render Map Embed */}
         <iframe
           title="User Realtime Map"
           width="100%"
@@ -76,12 +68,15 @@ export const MapSection = () => {
           style={{ border: 0 }}
         />
 
-        {/* Overlay Info Lokasi */}
+        <div style={styles.gradientOverlay} />
+
         <div style={styles.overlayCard}>
           <span style={styles.overlaySubtitle}>
             {loading ? 'Mencari GPS...' : statusText}
           </span>
-          <h4 style={styles.overlayTitle}>{locationName}</h4>
+          <span style={styles.overlayTitle}>
+            {locationName}
+          </span>
         </div>
       </div>
     </div>
@@ -101,26 +96,43 @@ const styles = {
     backgroundColor: '#e5e7eb',
     position: 'relative',
   },
+  gradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '90px',
+    background: 'linear-gradient(to top, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%)',
+    pointerEvents: 'none',
+    zIndex: 2,
+  },
   overlayCard: {
     position: 'absolute',
     bottom: '16px',
     left: '16px',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    backdropFilter: 'blur(6px)',
-    padding: '10px 18px',
-    borderRadius: '12px',
-    color: '#ffffff',
+    backgroundColor: 'transparent',
+    padding: 0,
     zIndex: 3,
     pointerEvents: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
   },
   overlaySubtitle: {
-    fontSize: '11px',
-    opacity: 0.85,
-    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#ffffff',
+    margin: 0,
+    padding: 0,
+    lineHeight: '1.2',
+    opacity: 0.9,
   },
   overlayTitle: {
-    margin: '2px 0 0 0',
-    fontSize: '16px',
+    fontSize: '20px',
     fontWeight: '700',
+    color: '#ffffff',
+    margin: 0,
+    padding: 0,
+    lineHeight: '1.2',
   },
 };
