@@ -60,7 +60,10 @@ export const HomePage = ({ onNavigate }) => {
   };
 
   return (
-    <div style={styles.appContainer}>
+    <div style={styles.appContainer} className="app-container">
+      {/* Dynamic CSS Injector for Mobile Interactivity */}
+      <style>{mobileResponsiveCSS}</style>
+
       {/* 1. Header Top Bar */}
       <header style={styles.header}>
         <div style={styles.logoGroup}>
@@ -89,10 +92,10 @@ export const HomePage = ({ onNavigate }) => {
       </header>
 
       {/* 2. Main Content Grid (3 Column Layout) */}
-      <div style={styles.dashboardGrid}>
+      <div style={styles.dashboardGrid} className="dashboard-grid">
         
         {/* Left Column: Sidebar Menu */}
-        <aside style={styles.sidebarColumn}>
+        <aside style={styles.sidebarColumn} className="sidebar-column">
           {menuItems.map((item) => {
             const isActive = activeTab === item.name;
             return (
@@ -148,7 +151,7 @@ export const HomePage = ({ onNavigate }) => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav style={styles.mobileNav}>
+      <nav style={styles.mobileNav} className="mobile-nav">
         {menuItems.map((item) => {
           const isActive = activeTab === item.name;
           return (
@@ -160,6 +163,7 @@ export const HomePage = ({ onNavigate }) => {
                 color: isActive ? '#a00047' : '#6b7280',
                 fontWeight: isActive ? '700' : '500',
               }}
+              className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             >
               <span style={{ display: 'block', margin: '0 auto 2px auto', color: 'inherit' }}>
                 {item.icon}
@@ -351,3 +355,42 @@ const styles = {
     cursor: 'pointer',
   },
 };
+
+const mobileResponsiveCSS = `
+  @media (max-width: 768px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr !important;
+      padding: 16px !important;
+      gap: 20px !important;
+      padding-bottom: 80px !important; /* Ruang agar tidak tertutup bottom nav */
+    }
+
+    .sidebar-column {
+      display: none !important; /* Sembunyikan sidebar desktop di layar HP */
+    }
+
+    .mobile-nav {
+      display: flex !important; /* Tampilkan bottom nav di layar HP */
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+      padding: 8px 12px !important;
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      transition: transform 0.15s ease, color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-nav-item:active {
+      transform: scale(0.92);
+    }
+
+    .mobile-nav-item.active {
+      transform: translateY(-2px);
+    }
+  }
+`;
