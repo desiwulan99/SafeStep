@@ -93,7 +93,7 @@ export const HomePage = ({ onNavigate }) => {
       {/* 2. Main Content Grid Layout */}
       <div style={styles.dashboardGrid} className="dashboard-grid">
         
-        {/* Left Column: Sidebar Menu */}
+        {/* Left Column: Sidebar Menu (Diatur Lebih Kiri, Atas, Agak Kotak & Warna Berbeda) */}
         <aside style={styles.sidebarColumn} className="sidebar-column">
           {menuItems.map((item) => {
             const isActive = activeTab === item.name;
@@ -103,9 +103,9 @@ export const HomePage = ({ onNavigate }) => {
                 onClick={() => handleNavClick(item.name, item.path)}
                 style={{
                   ...styles.sidebarBtn,
-                  backgroundColor: isActive ? '#a00047' : '#ffffff',
+                  backgroundColor: isActive ? '#a00047' : '#fdf2f8', // Soft pink background untuk tombol non-aktif
                   color: isActive ? '#ffffff' : '#a00047',
-                  border: isActive ? 'none' : '2px solid #a00047',
+                  border: isActive ? '2px solid #a00047' : '1.5px solid #f472b6',
                 }}
               >
                 <span style={{ ...styles.btnIcon, color: 'inherit' }}>{item.icon}</span>
@@ -137,7 +137,7 @@ export const HomePage = ({ onNavigate }) => {
         </div>
 
         {/* Right Column: SOS Button + Live Guardian */}
-        <div style={styles.rightColumn}>
+        <div style={styles.rightColumn} className="right-column">
           <div style={styles.sosWrapper}>
             <SosButton onTriggerSos={handleSosClick} />
           </div>
@@ -251,9 +251,9 @@ const styles = {
   },
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: '240px 1fr 300px',
-    gap: '28px',
-    padding: '32px 40px',
+    gridTemplateColumns: '200px 1fr 220px',
+    gap: '24px',
+    padding: '24px 24px', /* Padding kiri dikecilkan dari 40px ke 24px agar lebih rapat ke kiri */
     maxWidth: '1440px',
     width: '100%',
     margin: '0 auto',
@@ -264,19 +264,19 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    paddingTop: '0px', /* Posisikan sejajar paling atas dengan greeting title */
+    marginTop: '-4px', /* Ditarik ke atas sedikit agar sejajar lurus persis dengan teks Halo, user! */
   },
   sidebarBtn: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
-    padding: '12px 20px',
-    borderRadius: '12px', /* Diubah dari bentuk oval murni ke rounded rectangle yang pas */
-    fontSize: '15px',
+    gap: '12px',
+    padding: '12px 18px',
+    borderRadius: '16px', /* Agak kotak dengan sudut membulat elegan (rounded rectangle) */
+    fontSize: '14px',
     fontWeight: '700',
     cursor: 'pointer',
     textAlign: 'left',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+    boxShadow: '0 2px 6px rgba(160,0,71,0.04)',
     transition: 'all 0.15s ease-in-out',
   },
   btnIcon: {
@@ -332,10 +332,11 @@ const styles = {
   rightColumn: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '16px',
     alignItems: 'center',
     paddingTop: '0px',
-    height: '100%',
+    maxWidth: '220px',
+    width: '100%',
   },
   sosWrapper: {
     width: '100%',
@@ -345,7 +346,6 @@ const styles = {
   },
   guardianWrapper: {
     width: '100%',
-    flex: 1,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -372,8 +372,8 @@ const styles = {
 const mobileResponsiveCSS = `
   @media (max-width: 1024px) {
     .dashboard-grid {
-      grid-template-columns: 200px 1fr 260px !important;
-      padding: 20px !important;
+      grid-template-columns: 180px 1fr 200px !important;
+      padding: 16px !important;
       gap: 16px !important;
     }
   }
@@ -392,6 +392,7 @@ const mobileResponsiveCSS = `
 
     .right-column {
       padding-top: 0 !important;
+      max-width: 100% !important;
     }
 
     .mobile-nav {
