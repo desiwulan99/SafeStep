@@ -264,20 +264,20 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    paddingTop: '52px', /* Menyesuaikan posisi teratas sejajar dengan map/greeting */
+    paddingTop: '0px', /* Posisikan sejajar paling atas dengan greeting title */
   },
   sidebarBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '14px',
-    padding: '14px 22px',
-    borderRadius: '28px', /* Rounded pill style persis UI Figma */
+    padding: '12px 20px',
+    borderRadius: '12px', /* Diubah dari bentuk oval murni ke rounded rectangle yang pas */
     fontSize: '15px',
     fontWeight: '700',
     cursor: 'pointer',
     textAlign: 'left',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-    transition: 'all 0.2s ease',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+    transition: 'all 0.15s ease-in-out',
   },
   btnIcon: {
     display: 'flex',
@@ -334,7 +334,7 @@ const styles = {
     flexDirection: 'column',
     gap: '20px',
     alignItems: 'center',
-    paddingTop: '52px', /* Sejajar sempurna dengan sidebar & map */
+    paddingTop: '0px',
     height: '100%',
   },
   sosWrapper: {
