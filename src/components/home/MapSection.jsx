@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 export const MapSection = () => {
   const [locationName, setLocationName] = useState('Stasiun Manggarai');
-  const [coords, setCoords] = useState({ lat: -6.2098, lng: 106.8499 }); // Default Stasiun Manggarai
+  const [coords, setCoords] = useState({ lat: -6.2098, lng: 106.8499 });
   const [loading, setLoading] = useState(true);
   const [statusText, setStatusText] = useState('Mendeteksi GPS...');
 
@@ -15,7 +15,6 @@ export const MapSection = () => {
           setStatusText('Lokasi saat ini');
 
           try {
-            // Mengambil nama lokasi dari koordinat GPS
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
               {
@@ -37,21 +36,19 @@ export const MapSection = () => {
               setLocationName(name);
             }
           } catch (err) {
-            console.warn('Gagal fetch nama lokasi:', err);
             setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
           } finally {
             setLoading(false);
           }
         },
         (error) => {
-          console.warn('Geolocation Error:', error.message);
           setLoading(false);
           if (error.code === error.PERMISSION_DENIED) {
             setStatusText('Izin GPS Ditolak');
-            setLocationName('Stasiun Manggarai (Default)');
+            setLocationName('Stasiun Manggarai');
           } else {
             setStatusText('Gagal Ambil GPS');
-            setLocationName('Stasiun Manggarai (Default)');
+            setLocationName('Stasiun Manggarai');
           }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -65,7 +62,6 @@ export const MapSection = () => {
   return (
     <div style={styles.container}>
       <div style={styles.mapFrame}>
-        {/* Render Map Embed */}
         <iframe
           title="User Realtime Map"
           width="100%"
@@ -76,7 +72,6 @@ export const MapSection = () => {
           style={{ border: 0 }}
         />
 
-        {/* Overlay Info Lokasi */}
         <div style={styles.overlayCard}>
           <span style={styles.overlaySubtitle}>
             {loading ? 'Mencari GPS...' : statusText}
@@ -105,22 +100,22 @@ const styles = {
     position: 'absolute',
     bottom: '16px',
     left: '16px',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    backdropFilter: 'blur(6px)',
-    padding: '10px 18px',
-    borderRadius: '12px',
-    color: '#ffffff',
+    backgroundColor: 'transparent',
+    padding: '0',
     zIndex: 3,
     pointerEvents: 'none',
+    textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
   },
   overlaySubtitle: {
-    fontSize: '11px',
-    opacity: 0.85,
+    fontSize: '12px',
+    color: '#ffffff',
+    fontWeight: '500',
     display: 'block',
   },
   overlayTitle: {
     margin: '2px 0 0 0',
-    fontSize: '16px',
-    fontWeight: '700',
+    fontSize: '18px',
+    fontWeight: '800',
+    color: '#ffffff',
   },
 };
