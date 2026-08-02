@@ -3,10 +3,9 @@ import React from 'react';
 export const Sidebar = ({ activeTab, onSelectMenu, isOpen, onClose }) => {
   const menuItems = [
     { name: 'Beranda', iconColor: '#6366f1', path: '/' },
-    { name: 'Safe Route', iconColor: '#10b981', path: '/safe-route' },
-    { name: 'Laporkan Insiden', iconColor: '#ef4444', path: '/report' },
+    { name: 'Peta Aman', iconColor: '#10b981', path: '/safe-route' },
     { name: 'Live Guardian', iconColor: '#f59e0b', path: '/guardian' },
-    { name: 'Riwayat', iconColor: '#8b5cf6', path: '/history' },
+    { name: 'Lapor', iconColor: '#ef4444', path: '/report' }
   ];
 
   return (
