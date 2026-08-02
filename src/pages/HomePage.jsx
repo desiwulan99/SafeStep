@@ -61,7 +61,6 @@ export const HomePage = ({ onNavigate }) => {
 
   return (
     <div style={styles.appContainer} className="app-container">
-      {/* Dynamic CSS Injector for Mobile Interactivity */}
       <style>{mobileResponsiveCSS}</style>
 
       {/* 1. Header Top Bar */}
@@ -91,7 +90,7 @@ export const HomePage = ({ onNavigate }) => {
         </div>
       </header>
 
-      {/* 2. Main Content Grid (3 Column Layout) */}
+      {/* 2. Main Content Grid Layout */}
       <div style={styles.dashboardGrid} className="dashboard-grid">
         
         {/* Left Column: Sidebar Menu */}
@@ -106,7 +105,7 @@ export const HomePage = ({ onNavigate }) => {
                   ...styles.sidebarBtn,
                   backgroundColor: isActive ? '#a00047' : '#ffffff',
                   color: isActive ? '#ffffff' : '#a00047',
-                  border: isActive ? 'none' : '1.5px solid #a00047',
+                  border: isActive ? 'none' : '2px solid #a00047',
                 }}
               >
                 <span style={{ ...styles.btnIcon, color: 'inherit' }}>{item.icon}</span>
@@ -189,19 +188,20 @@ const styles = {
   header: {
     backgroundColor: '#f3a4c8',
     height: '64px',
-    padding: '0 28px',
+    padding: '0 32px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     position: 'relative',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
   },
   logoGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
     backgroundColor: '#ffffff',
-    padding: '6px 14px',
-    borderRadius: '10px',
+    padding: '6px 16px',
+    borderRadius: '12px',
     border: '2px dashed #f3a4c8',
   },
   logoText: {
@@ -211,8 +211,8 @@ const styles = {
     letterSpacing: '-0.5px',
   },
   userProfileIcon: {
-    width: '38px',
-    height: '38px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%',
     backgroundColor: '#ffffff',
     display: 'flex',
@@ -220,20 +220,21 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     border: '2px dashed #f3a4c8',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
   },
   sosNotification: {
     position: 'absolute',
     left: '50%',
-    top: '8px',
+    top: '10px',
     transform: 'translateX(-50%)',
     backgroundColor: '#34d399',
     color: '#ffffff',
-    padding: '8px 16px',
+    padding: '8px 18px',
     borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
     zIndex: 100,
   },
   notifCheck: {
@@ -250,30 +251,33 @@ const styles = {
   },
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: '220px 1fr 280px',
-    gap: '24px',
-    padding: '24px 32px',
-    maxWidth: '1300px',
+    gridTemplateColumns: '240px 1fr 300px',
+    gap: '28px',
+    padding: '32px 40px',
+    maxWidth: '1440px',
     width: '100%',
     margin: '0 auto',
     boxSizing: 'border-box',
+    alignItems: 'start',
   },
   sidebarColumn: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+    gap: '12px',
+    paddingTop: '52px', /* Menyesuaikan posisi teratas sejajar dengan map/greeting */
   },
   sidebarBtn: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    padding: '12px 20px',
-    borderRadius: '14px',
-    fontSize: '14px',
+    gap: '14px',
+    padding: '14px 22px',
+    borderRadius: '28px', /* Rounded pill style persis UI Figma */
+    fontSize: '15px',
     fontWeight: '700',
     cursor: 'pointer',
     textAlign: 'left',
-    transition: 'all 0.15s ease-in-out',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+    transition: 'all 0.2s ease',
   },
   btnIcon: {
     display: 'flex',
@@ -284,18 +288,20 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    width: '100%',
   },
   greetingHeader: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: '6px',
+    gap: '4px',
   },
   greetingTitle: {
-    fontSize: '26px',
+    fontSize: '28px',
     fontWeight: '800',
     color: '#1e293b',
     margin: 0,
+    letterSpacing: '-0.5px',
   },
   statusTag: {
     display: 'inline-flex',
@@ -316,8 +322,9 @@ const styles = {
   },
   mapWrapper: {
     width: '100%',
-    borderRadius: '16px',
+    borderRadius: '20px',
     overflow: 'hidden',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
   },
   reportWrapper: {
     width: '100%',
@@ -325,16 +332,22 @@ const styles = {
   rightColumn: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
+    gap: '20px',
     alignItems: 'center',
+    paddingTop: '52px', /* Sejajar sempurna dengan sidebar & map */
+    height: '100%',
   },
   sosWrapper: {
     width: '100%',
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   guardianWrapper: {
     width: '100%',
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   mobileNav: {
     display: 'none',
@@ -357,20 +370,32 @@ const styles = {
 };
 
 const mobileResponsiveCSS = `
+  @media (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 200px 1fr 260px !important;
+      padding: 20px !important;
+      gap: 16px !important;
+    }
+  }
+
   @media (max-width: 768px) {
     .dashboard-grid {
       grid-template-columns: 1fr !important;
       padding: 16px !important;
       gap: 20px !important;
-      padding-bottom: 80px !important; /* Ruang agar tidak tertutup bottom nav */
+      padding-bottom: 84px !important;
     }
 
     .sidebar-column {
-      display: none !important; /* Sembunyikan sidebar desktop di layar HP */
+      display: none !important;
+    }
+
+    .right-column {
+      padding-top: 0 !important;
     }
 
     .mobile-nav {
-      display: flex !important; /* Tampilkan bottom nav di layar HP */
+      display: flex !important;
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
       padding: 8px 12px !important;
     }
