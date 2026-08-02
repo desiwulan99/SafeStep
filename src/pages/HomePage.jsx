@@ -251,9 +251,9 @@ const styles = {
   },
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: '200px 1fr 220px',
+    gridTemplateColumns: '220px 1fr 220px',
     gap: '24px',
-    padding: '24px 24px', /* Padding kiri dikecilkan dari 40px ke 24px agar lebih rapat ke kiri */
+    padding: '24px 24px 24px 12px',
     maxWidth: '1440px',
     width: '100%',
     margin: '0 auto',
@@ -264,7 +264,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
-    marginTop: '-4px', /* Ditarik ke atas sedikit agar sejajar lurus persis dengan teks Halo, user! */
+    marginTop: '-4px', 
   },
   sidebarBtn: {
     display: 'flex',
