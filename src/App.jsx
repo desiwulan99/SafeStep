@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ReportingPage } from "./pages/ReportingPage";
+import { ReportingPage } from "./features/anonymous-reporting/anonymous-reporting.jsx";
 import { HomePage } from "./pages/HomePage";
 
 function App() {
