@@ -1,237 +1,283 @@
 import React, { useState } from 'react';
-import { Sidebar } from '../components/layout/Sidebar.jsx';
-import { QuickCard } from '../components/home/QuickCard.jsx';
-import { MapSection } from '../components/home/MapSection.jsx';
-import { ReportBanner } from '../components/home/ReportBanner.jsx';
-import { RecentActivity } from '../components/home/RecentActivity.jsx';
-import { SosButton } from '../features/sos-emergency/components/SosButton.jsx';
+import { SosButton } from '../features/sos-emergency/components/SosButton';
+import { MapSection } from '../components/home/MapSection';
+import { ReportBanner } from '../components/home/ReportBanner';
+import { LiveGuardianCard } from '../components/home/LiveGuardianCard';
+
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('Beranda');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSosAlert, setShowSosAlert] = useState(false);
 
-  const handleNavigation = (menuName, routePath) => {
-    setActiveTab(menuName);
-    if (onNavigate && routePath) {
-      onNavigate(routePath);
-    }
+  const menuItems = [
+    { name: 'Beranda', icon: 'home', path: '/' },
+    { name: 'Peta Aman', icon: 'map-pin', path: '/safe-route' },
+    { name: 'Live Guardian', icon: 'heart', path: '/guardian' },
+    { name: 'Lapor', icon: 'alert', path: '/report' },
+  ];
+
+  const handleSosClick = () => {
+    setShowSosAlert(true);
+    setTimeout(() => {
+      setShowSosAlert(false);
+    }, 4000);
+  };
+
+  const handleNavClick = (name, path) => {
+    setActiveTab(name);
+    if (onNavigate && path) onNavigate(path);
   };
 
   return (
-    <div style={styles.container}>
-      <Sidebar
-        activeTab={activeTab}
-        onSelectMenu={handleNavigation}
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+    <div style={styles.wrapper}>
+      {/* Top Bar Header */}
+      <header style={styles.topHeader}>
+        <div style={styles.logoContainer}>
+          <span style={styles.logoText}>SafeStep</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#b90053">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </div>
 
-      <main style={styles.mainContent}>
-        <header style={styles.header}>
-          <div style={styles.headerLeft}>
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              style={styles.hamburgerBtn}
-              aria-label="Open Menu"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
+        {/* SOS Alert Notification (Atas) */}
+        {showSosAlert && (
+          <div style={styles.sosNotification}>
+            <div style={styles.notifCheck}>✓</div>
             <div>
-              <h1 style={styles.greeting}>Hi, Sarah</h1>
-              <div style={styles.locationBadge}>
-                <span style={styles.locationDot}></span>
-                LOCATION ACTIVE • JAKARTA PUSAT
-              </div>
+              <strong style={{ display: 'block', fontSize: '14px' }}>SOS Berhasil Dikirim!</strong>
+              <span style={{ fontSize: '12px' }}>Lokasimu sudah dibagikan ke semua kontak darurat</span>
+            </div>
+          </div>
+        )}
+
+        <div style={styles.userAvatar}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#9ca3af">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+      </header>
+
+      {/* Main Layout Body */}
+      <div style={styles.bodyLayout}>
+        {/* Left Sidebar (Desktop) */}
+        <aside style={styles.sidebar}>
+          {menuItems.map((item) => {
+            const isActive = activeTab === item.name;
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavClick(item.name, item.path)}
+                style={{
+                  ...styles.sidebarBtn,
+                  backgroundColor: isActive ? '#b90053' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#b90053',
+                  border: isActive ? 'none' : '1.5px solid #b90053',
+                }}
+              >
+                {item.name}
+              </button>
+            );
+          })}
+        </aside>
+
+        {/* Center / Main Content Area */}
+        <main style={styles.mainContent}>
+          <div style={styles.userGreeting}>
+            <h2 style={styles.greetingTitle}>Halo, user!</h2>
+            <div style={styles.statusBadge}>
+              <span style={styles.statusDot} />
+              Lokasi Aktif
             </div>
           </div>
 
-          <div style={styles.headerRight}>
-            <button style={styles.iconBtn} onClick={() => alert('Notifikasi')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
+          <div style={styles.gridContent}>
+            {/* Middle Column: Map & Report */}
+            <div style={styles.centerColumn}>
+              <MapSection />
+              <ReportBanner onReportClick={() => handleNavClick('Lapor', '/report')} />
+            </div>
+
+            {/* Right Column: SOS & Live Guardian */}
+            <div style={styles.rightColumn}>
+              <SosButton onTriggerSos={handleSosClick} />
+              <LiveGuardianCard onClick={() => handleNavClick('Live Guardian', '/guardian')} />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav style={styles.mobileBottomNav}>
+        {menuItems.map((item) => {
+          const isActive = activeTab === item.name;
+          return (
+            <button
+              key={item.name}
+              onClick={() => handleNavClick(item.name, item.path)}
+              style={{
+                ...styles.mobileNavBtn,
+                color: isActive ? '#b90053' : '#6b7280',
+                fontWeight: isActive ? '700' : '500',
+              }}
+            >
+              {item.name}
             </button>
-            <img
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
-              alt="Profile"
-              style={styles.profileAvatar}
-              onClick={() => alert('Buka Profil')}
-            />
-          </div>
-        </header>
-
-        <div style={styles.dashboardGrid}>
-          <div style={styles.leftColumn}>
-            <MapSection />
-            <ReportBanner
-              onReportClick={() => handleNavigation('Lapor', '/report')}
-            />
-          </div>
-
-          <div style={styles.rightColumn}>
-            <QuickCard
-              iconSvg={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-              }
-              iconBg="#fef3c7"
-              title="Live Guardian"
-              description="Share your real-time path with trusted contacts."
-              actionText="Mulai Sekarang →"
-              onClick={() => handleNavigation('Live Guardian', '/guardian')}
-            />
-
-            <QuickCard
-              iconSvg={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-                </svg>
-              }
-              iconBg="#e0e7ff"
-              title="Peta Aman"
-              description="Find the safest way home based on community data."
-              actionText="Pilih Rute →"
-              onClick={() => handleNavigation('Peta Aman', '/safe-route')}
-            />
-
-            <RecentActivity
-              onViewAll={() => handleNavigation('Riwayat', '/history')}
-            />
-          </div>
-        </div>
-
-        <footer style={styles.footer}>
-          <span>© 2024 SafeStep. Empowering Women Everywhere.</span>
-          <div style={styles.footerLinks}>
-            <a href="#privacy" style={styles.footerLink}>Privacy Policy</a>
-            <a href="#terms" style={styles.footerLink}>Terms of Service</a>
-            <a href="#support" style={styles.footerLink}>Contact Support</a>
-          </div>
-        </footer>
-      </main>
-
-      <SosButton />
+          );
+        })}
+      </nav>
     </div>
   );
 };
 
 const styles = {
-  container: {
-    display: 'flex',
+  wrapper: {
+    backgroundColor: '#f3f4f6',
     minHeight: '100vh',
-    backgroundColor: '#f8fafc',
     fontFamily: "'Inter', sans-serif",
-    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    paddingBottom: '60px', // Space for mobile nav
   },
-  mainContent: {
-    flex: 1,
-    padding: '24px 32px',
-    maxWidth: '1280px',
-    margin: '0 auto',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  header: {
+  topHeader: {
+    backgroundColor: '#fbcfe8',
+    padding: '16px 32px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '24px',
+    position: 'relative',
   },
-  headerLeft: {
+  logoContainer: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  hamburgerBtn: {
-    display: 'none',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '4px',
-  },
-  greeting: {
-    fontSize: '28px',
-    fontWeight: '700',
-    color: '#0f172a',
-    margin: 0,
-  },
-  locationBadge: {
-    display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    fontSize: '12px',
-    fontWeight: '700',
-    color: '#6366f1',
-    marginTop: '4px',
   },
-  locationDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: '#6366f1',
+  logoText: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#b90053',
   },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  iconBtn: {
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '50%',
+  userAvatar: {
     width: '40px',
     height: '40px',
-    cursor: 'pointer',
+    borderRadius: '50%',
+    backgroundColor: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   },
-  profileAvatar: {
-    width: '40px',
-    height: '40px',
+  sosNotification: {
+    position: 'absolute',
+    left: '50%',
+    top: '12px',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#4ade80',
+    color: '#ffffff',
+    padding: '10px 20px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    zIndex: 10,
+    width: 'max-content',
+    maxWidth: '90%',
+  },
+  notifCheck: {
+    backgroundColor: '#ffffff',
+    color: '#22c55e',
     borderRadius: '50%',
-    objectFit: 'cover',
-    cursor: 'pointer',
+    width: '24px',
+    height: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
   },
-  dashboardGrid: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
-    gap: '24px',
+  bodyLayout: {
+    display: 'flex',
+    padding: '24px 32px',
+    gap: '32px',
+    maxWidth: '1280px',
+    width: '100%',
+    margin: '0 auto',
+    boxSizing: 'border-box',
   },
-  leftColumn: {
+  sidebar: {
+    width: '200px',
     display: 'flex',
     flexDirection: 'column',
+    gap: '12px',
+    flexShrink: 0,
+  },
+  sidebarBtn: {
+    padding: '12px 20px',
+    borderRadius: '10px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.2s ease',
+  },
+  mainContent: {
+    flex: 1,
+  },
+  userGreeting: {
+    marginBottom: '20px',
+  },
+  greetingTitle: {
+    fontSize: '26px',
+    fontWeight: '800',
+    color: '#1f2937',
+    margin: 0,
+  },
+  statusBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: '#fce7f3',
+    color: '#b90053',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    marginTop: '6px',
+  },
+  statusDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    backgroundColor: '#b90053',
+  },
+  gridContent: {
+    display: 'grid',
+    gridTemplateColumns: '1.8fr 1fr',
     gap: '24px',
+  },
+  centerColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
   },
   rightColumn: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
   },
-  footer: {
-    marginTop: '40px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e2e8f0',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '12px',
-    color: '#94a3b8',
-    flexWrap: 'wrap',
-    gap: '12px',
+  mobileBottomNav: {
+    display: 'none',
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #e5e7eb',
+    padding: '12px',
+    justifyContent: 'space-around',
+    zIndex: 50,
   },
-  footerLinks: {
-    display: 'flex',
-    gap: '16px',
-  },
-  footerLink: {
-    color: '#64748b',
-    textDecoration: 'none',
+  mobileNavBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '13px',
+    cursor: 'pointer',
   },
 };

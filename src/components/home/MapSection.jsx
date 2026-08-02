@@ -2,27 +2,27 @@ import React from 'react';
 
 export const MapSection = () => {
   return (
-    <div style={styles.card}>
-      <div style={styles.searchBar}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          type="text"
-          placeholder="Where to?"
-          style={styles.searchInput}
-          onClick={() => alert('Membuka pencarian rute')}
-        />
-      </div>
+    <div style={styles.container}>
+      <div style={styles.mapFrame}>
+        {/* Mock Map View */}
+        <div style={styles.mapMock}>
+          <div style={styles.road1} />
+          <div style={styles.road2} />
+          
+          {/* Location Pin */}
+          <div style={styles.pinContainer}>
+            <div style={styles.pin}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#b90053">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+            </div>
+            <span style={styles.pinText}>Manggarai</span>
+          </div>
 
-      <div style={styles.mapContainer}>
-        <div style={styles.mapBg}>
-          <div style={styles.badge}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Aman: 98% Safe Routes Found
+          {/* Bottom Card Overlay */}
+          <div style={styles.overlayCard}>
+            <span style={styles.overlaySubtitle}>Lokasi saat ini</span>
+            <h4 style={styles.overlayTitle}>Stasiun Manggarai</h4>
           </div>
         </div>
       </div>
@@ -31,57 +31,80 @@ export const MapSection = () => {
 };
 
 const styles = {
-  card: {
-    position: 'relative',
+  container: {
+    width: '100%',
     borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-    backgroundColor: '#ffffff',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
   },
-  searchBar: {
-    position: 'absolute',
-    top: '16px',
-    left: '16px',
-    right: '16px',
-    zIndex: 10,
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '10px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  },
-  searchInput: {
-    border: 'none',
-    outline: 'none',
+  mapFrame: {
+    height: '300px',
     width: '100%',
-    fontSize: '14px',
-  },
-  mapContainer: {
-    height: '320px',
-    width: '100%',
+    backgroundColor: '#e5e7eb',
     position: 'relative',
   },
-  mapBg: {
+  mapMock: {
     width: '100%',
     height: '100%',
     backgroundColor: '#e2e8f0',
-    backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
-    backgroundSize: '16px 16px',
+    backgroundImage: 'radial-gradient(#cbd5e1 1.5px, transparent 1.5px)',
+    backgroundSize: '20px 20px',
+    position: 'relative',
     display: 'flex',
-    alignItems: 'flex-end',
-    padding: '16px',
-    boxSizing: 'border-box',
-  },
-  badge: {
-    backgroundColor: '#6366f1',
-    color: '#ffffff',
-    padding: '8px 16px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600',
-    display: 'inline-flex',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  road1: {
+    position: 'absolute',
+    width: '100%',
+    height: '24px',
+    backgroundColor: '#ffffff',
+    transform: 'rotate(-15deg)',
+  },
+  road2: {
+    position: 'absolute',
+    width: '24px',
+    height: '100%',
+    backgroundColor: '#ffffff',
+    transform: 'rotate(25deg)',
+  },
+  pinContainer: {
+    position: 'relative',
+    zIndex: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  pin: {
+    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+  },
+  pinText: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#b90053',
+    backgroundColor: '#ffffff',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  },
+  overlayCard: {
+    position: 'absolute',
+    bottom: '16px',
+    left: '16px',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backdropFilter: 'blur(4px)',
+    padding: '12px 20px',
+    borderRadius: '12px',
+    color: '#ffffff',
+    zIndex: 3,
+  },
+  overlaySubtitle: {
+    fontSize: '12px',
+    opacity: 0.9,
+  },
+  overlayTitle: {
+    margin: '2px 0 0 0',
+    fontSize: '18px',
+    fontWeight: '700',
   },
 };

@@ -1,45 +1,54 @@
 import React from 'react';
 
-export const SosButton = () => {
-  const handleSosTrigger = () => {
-    alert('SINYAL DARURAT DISIARKAN! Kontak tepercaya sedang dihubungi.');
-  };
-
+export const SosButton = ({ onTriggerSos }) => {
   return (
-    <button
-      onClick={handleSosTrigger}
-      style={styles.sosFloatingBtn}
-      aria-label="Tombol Darurat SOS"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-      <span>SOS</span>
-    </button>
+    <div style={styles.container}>
+      <button
+        onClick={onTriggerSos}
+        style={styles.sosCircle}
+        aria-label="Tombol SOS Darurat"
+      >
+        <div style={styles.iconWrapper}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="7 13 12 18 17 13" />
+            <polyline points="7 6 12 11 17 6" />
+          </svg>
+        </div>
+        <span style={styles.sosText}>SOS</span>
+      </button>
+    </div>
   );
 };
 
 const styles = {
-  sosFloatingBtn: {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    width: '64px',
-    height: '64px',
+  container: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  sosCircle: {
+    width: '200px',
+    height: '200px',
     borderRadius: '50%',
-    backgroundColor: '#dc2626',
-    color: '#ffffff',
-    border: '4px solid #fecaca',
-    boxShadow: '0 8px 24px rgba(220, 38, 38, 0.4)',
+    backgroundColor: '#b90053',
+    border: '12px solid #a00047',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: '800',
-    fontSize: '11px',
+    color: '#ffffff',
     cursor: 'pointer',
-    zIndex: 100,
-    gap: '2px',
+    boxShadow: '0 8px 20px rgba(185, 0, 83, 0.3)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    outline: 'none',
+  },
+  iconWrapper: {
+    marginBottom: '4px',
+  },
+  sosText: {
+    fontSize: '32px',
+    fontWeight: '800',
+    letterSpacing: '2px',
   },
 };
