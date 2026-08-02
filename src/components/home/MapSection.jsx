@@ -73,10 +73,10 @@ export const MapSection = () => {
         />
 
         <div style={styles.overlayCard}>
-          <span style={styles.overlaySubtitle}>
+          <div style={styles.overlaySubtitle}>
             {loading ? 'Mencari GPS...' : statusText}
-          </span>
-          <h4 style={styles.overlayTitle}>{locationName}</h4>
+          </div>
+          <div style={styles.overlayTitle}>{locationName}</div>
         </div>
       </div>
     </div>
