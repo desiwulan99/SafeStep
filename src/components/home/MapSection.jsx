@@ -1,84 +1,85 @@
 import React, { useState, useEffect } from 'react';
 
 export const MapSection = () => {
-  const [locationName, setLocationName] = useState('Mendeteksi lokasi...');
-  const [coords, setCoords] = useState(null);
+  const [locationName, setLocationName] = useState('Stasiun Manggarai');
+  const [coords, setCoords] = useState({ lat: -6.2098, lng: 106.8499 }); // Default Stasiun Manggarai
   const [loading, setLoading] = useState(true);
+  const [statusText, setStatusText] = useState('Mendeteksi GPS...');
 
   useEffect(() => {
-    // 1. Mengambil Geolocation perangkat user
-    if (navigator.geolocation) {
+    if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
           setCoords({ lat: latitude, lng: longitude });
+          setStatusText('Lokasi saat ini');
 
-          // 2. Reverse Geocoding (Mendapatkan nama area dari koordinat)
           try {
+            // Mengambil nama lokasi dari koordinat GPS
             const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+              {
+                headers: {
+                  'Accept-Language': 'id',
+                },
+              }
             );
             const data = await response.json();
-            
-            // Mengambil nama suburb/city/road yang relevan
-            const name =
-              data.address.suburb ||
-              data.address.city_district ||
-              data.address.city ||
-              data.address.town ||
-              'Lokasi Anda';
-              
-            setLocationName(name);
+
+            if (data && data.address) {
+              const name =
+                data.address.suburb ||
+                data.address.village ||
+                data.address.city_district ||
+                data.address.city ||
+                data.address.town ||
+                'Area Terdeteksi';
+              setLocationName(name);
+            }
           } catch (err) {
-            setLocationName('Lokasi Terdeteksi');
+            console.warn('Gagal fetch nama lokasi:', err);
+            setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
           } finally {
             setLoading(false);
           }
         },
         (error) => {
           console.warn('Geolocation Error:', error.message);
-          setLocationName('Akses Lokasi Ditolak');
           setLoading(false);
-        }
+          if (error.code === error.PERMISSION_DENIED) {
+            setStatusText('Izin GPS Ditolak');
+            setLocationName('Stasiun Manggarai (Default)');
+          } else {
+            setStatusText('Gagal Ambil GPS');
+            setLocationName('Stasiun Manggarai (Default)');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
-      setLocationName('Fitur tidak didukung browser');
       setLoading(false);
+      setStatusText('GPS Tidak Didukung');
     }
   }, []);
 
   return (
     <div style={styles.container}>
       <div style={styles.mapFrame}>
-        {/* Jika ada koordinat, kita pakai embed map OpenStreetMap yang berfungsi secara live */}
-        {coords ? (
-          <iframe
-            title="User Realtime Map"
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            scrolling="no"
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.005}%2C${coords.lat - 0.003}%2C${coords.lng + 0.005}%2C${coords.lat + 0.003}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
-            style={{ border: 0 }}
-          />
-        ) : (
-          <div style={styles.mapMock}>
-            <div style={styles.road1} />
-            <div style={styles.road2} />
-            <div style={styles.pinContainer}>
-              <div style={styles.pin}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#b90053">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Render Map Embed */}
+        <iframe
+          title="User Realtime Map"
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          scrolling="no"
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.005}%2C${coords.lat - 0.003}%2C${coords.lng + 0.005}%2C${coords.lat + 0.003}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
+          style={{ border: 0 }}
+        />
 
-        {/* Overlay Info Lokasi Realtime */}
+        {/* Overlay Info Lokasi */}
         <div style={styles.overlayCard}>
           <span style={styles.overlaySubtitle}>
-            {loading ? 'Memuat lokasi GPS...' : 'Lokasi saat ini'}
+            {loading ? 'Mencari GPS...' : statusText}
           </span>
           <h4 style={styles.overlayTitle}>{locationName}</h4>
         </div>
@@ -95,45 +96,10 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
   },
   mapFrame: {
-    height: '300px',
+    height: '280px',
     width: '100%',
     backgroundColor: '#e5e7eb',
     position: 'relative',
-  },
-  mapMock: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#e2e8f0',
-    backgroundImage: 'radial-gradient(#cbd5e1 1.5px, transparent 1.5px)',
-    backgroundSize: '20px 20px',
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  road1: {
-    position: 'absolute',
-    width: '100%',
-    height: '24px',
-    backgroundColor: '#ffffff',
-    transform: 'rotate(-15deg)',
-  },
-  road2: {
-    position: 'absolute',
-    width: '24px',
-    height: '100%',
-    backgroundColor: '#ffffff',
-    transform: 'rotate(25deg)',
-  },
-  pinContainer: {
-    position: 'relative',
-    zIndex: 2,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  pin: {
-    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
   },
   overlayCard: {
     position: 'absolute',
@@ -141,7 +107,7 @@ const styles = {
     left: '16px',
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
     backdropFilter: 'blur(6px)',
-    padding: '12px 20px',
+    padding: '10px 18px',
     borderRadius: '12px',
     color: '#ffffff',
     zIndex: 3,
