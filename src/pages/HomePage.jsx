@@ -80,7 +80,7 @@ export default function HomePage({ userName = "user", onNavigate }) {
               description="Bagikan lokasi real-time-mu dengan kontak tepercaya!"
               actionLabel="Mulai sesi"
               icon={<img src={mascotImg} alt="Maskot SafeStep" />}
-              onClick={() => console.log("navigate: live guardian")}
+              onClick={() => onNavigate?.({ key: "live-guardian" })}
             />
 
             <QuickCard
