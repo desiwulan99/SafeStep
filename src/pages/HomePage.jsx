@@ -89,7 +89,7 @@ export default function HomePage({ userName = "user", onNavigate }) {
               description="Lihat titik perlindungan dalam radius 2 km dari lokasimu."
               actionLabel="Lihat peta"
               icon={<MapIcon size={30} strokeWidth={1.8} color="#B01A5B" />}
-              onClick={() => console.log("navigate: safe route")}
+              onClick={() => onNavigate?.({ key: "safe-route" })}
             />
           </div>
         </aside>
