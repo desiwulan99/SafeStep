@@ -1,0 +1,704 @@
+.guardian-page {
+  min-height: 100vh;
+  background: var(--soft-pink, #fdf0f4);
+  padding-top: 64px;
+  box-sizing: border-box;
+}
+
+.guardian-page__toast {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100000;
+  display: flex;
+  justify-content: center;
+  width: min(580px, calc(100% - 32px));
+}
+
+.guardian-page__toast .toast {
+  width: 100%;
+}
+
+.guardian-page__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-left: 230px;
+  width: calc(100% - 230px);
+  padding: 24px 24px 24px 8px;
+  box-sizing: border-box;
+}
+
+.guardian-page__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.guardian-page__side {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.guardian-page__sos-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* Page Title & Timer */
+.guardian-page__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink, #241422);
+}
+
+.guardian-page__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guardian-page__timer {
+  font-size: 15px;
+  font-weight: 800;
+  color: #a81b58;
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(168, 27, 88, 0.12);
+}
+
+/* Top Status Card (Inactive / Active) */
+.guardian-page__status-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px -8px rgba(36, 20, 34, 0.12);
+}
+
+.guardian-page__mascot-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #f4c2d7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 14px -4px rgba(168, 27, 88, 0.3);
+}
+
+.guardian-page__mascot-avatar img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.guardian-page__avatar-large {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #f0acc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a81b58;
+}
+
+.guardian-page__status-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--slate, #6b5c66);
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.guardian-page__name-lg {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink, #241422);
+}
+
+.guardian-page__online-badge {
+  background: #f0acc8;
+  color: #8c0e43;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.guardian-page__activate-btn {
+  padding: 10px 24px;
+  border-radius: 12px;
+  border: none;
+  background: #a81b58;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -6px rgba(168, 27, 88, 0.4);
+  transition: transform 0.15s ease, background 0.18s ease;
+}
+
+.guardian-page__activate-btn:hover {
+  transform: translateY(-2px);
+  background: #8c0e43;
+}
+
+.guardian-page__activate-btn--active {
+  background: #ffffff;
+  color: #a81b58;
+  border: 1.5px solid #a81b58;
+}
+
+/* Chat List Card */
+.guardian-page__chat-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 20px -8px rgba(36, 20, 34, 0.12);
+}
+
+.guardian-page__chat-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink, #241422);
+}
+
+.guardian-page__chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guardian-page__chat-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.guardian-page__chat-item:hover {
+  background: #fdf0f4;
+}
+
+.guardian-page__chat-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f0acc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a81b58;
+  flex-shrink: 0;
+}
+
+.guardian-page__chat-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.guardian-page__chat-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guardian-page__chat-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink, #241422);
+}
+
+.guardian-page__chat-snippet {
+  font-size: 12.5px;
+  color: var(--slate, #6b5c66);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guardian-page__chat-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e0608e;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Chat Room Section */
+.guardian-page__room-card {
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  box-shadow: 0 4px 20px -8px rgba(36, 20, 34, 0.15);
+}
+
+.guardian-page__room-header {
+  background: #a81b58;
+  color: #ffffff;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.guardian-page__back-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.guardian-page__room-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f0acc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a81b58;
+  flex-shrink: 0;
+}
+
+.guardian-page__room-title-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guardian-page__room-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.guardian-page__room-sub-banner {
+  background: #e0608e;
+  color: #ffffff;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guardian-page__room-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #fafafa;
+}
+
+.guardian-page__msg-bubble {
+  max-width: 70%;
+  border-radius: 16px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.guardian-page__msg-bubble--sent {
+  align-self: flex-end;
+  background: #e0608e;
+  color: #ffffff;
+}
+
+.guardian-page__msg-bubble--received {
+  align-self: flex-start;
+  background: #e2e8f0;
+  color: #241422;
+}
+
+.guardian-page__msg-text {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.guardian-page__msg-time {
+  font-size: 10.5px;
+  align-self: flex-end;
+  opacity: 0.8;
+}
+
+.guardian-page__msg-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.guardian-page__msg-btn {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #a81b58;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.guardian-page__msg-btn--outline {
+  background: #ffffff;
+  color: #241422;
+  border: 1px solid #cbd5e1;
+}
+
+.guardian-page__room-input-bar {
+  padding: 12px 16px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guardian-page__room-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #a81b58;
+  border-radius: 12px;
+  padding: 10px 16px;
+  gap: 10px;
+}
+
+.guardian-page__room-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 13.5px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.guardian-page__room-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.guardian-page__icon-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Map Tracking View (Mockup 5) */
+.guardian-page__map-tracking-card {
+  width: 100%;
+  height: 380px;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 6px 20px -8px rgba(36, 20, 34, 0.18);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.guardian-page__map-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 500;
+  background: #ffffff;
+  color: #a81b58;
+  border: 1px solid #e2e8f0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, background 0.18s ease;
+}
+
+.guardian-page__map-close-btn:hover {
+  transform: scale(1.08);
+  background: #fdf0f4;
+}
+
+.guardian-page__map-tracking-card .leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.guardian-page__tracking-info-card {
+  background: #a81b58;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 6px 20px -6px rgba(168, 27, 88, 0.4);
+}
+
+.guardian-page__tracking-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.guardian-page__tracking-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f0acc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a81b58;
+  flex-shrink: 0;
+}
+
+.guardian-page__tracking-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guardian-page__tracking-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guardian-page__tracking-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.guardian-page__tracking-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.guardian-page__tracking-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.guardian-page__chat-action-btn {
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: none;
+  background: #e0608e;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease;
+}
+
+.guardian-page__chat-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Floating SOS Emergency Modal */
+.guardian-page__modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(36, 20, 34, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.guardian-page__sos-modal {
+  background: #a81b58;
+  color: #ffffff;
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  width: min(380px, 90%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 12px 32px -8px rgba(168, 27, 88, 0.6);
+  animation: scale-up 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scale-up {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.guardian-page__modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.18s ease;
+  z-index: 10;
+}
+
+.guardian-page__modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.guardian-page__sos-icon-svg {
+  width: 56px;
+  height: 56px;
+  stroke: #ffffff;
+  stroke-width: 2.2;
+  margin-bottom: 8px;
+}
+
+.guardian-page__sos-modal-title {
+  margin: 8px 0 12px;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.guardian-page__sos-modal-text {
+  margin: 0 0 24px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.guardian-page__sos-modal-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: none;
+  background: #ffffff;
+  color: #a81b58;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease;
+}
+
+.guardian-page__sos-modal-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Mobile Responsive Layout Balanced */
+@media (max-width: 900px) {
+  .guardian-page {
+    padding-top: 56px;
+  }
+  .guardian-page__body {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+    padding: 16px 16px 110px;
+    gap: 20px;
+  }
+  .guardian-page__main {
+    width: 100%;
+    gap: 16px;
+  }
+  .guardian-page__side {
+    width: 100%;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .guardian-page__map-tracking-card {
+    height: 300px;
+    border-radius: 16px;
+  }
+  .guardian-page__tracking-info-card {
+    padding: 16px 18px;
+    border-radius: 16px;
+  }
+  .guardian-page__room-card {
+    height: 480px;
+    border-radius: 16px;
+  }
+}
