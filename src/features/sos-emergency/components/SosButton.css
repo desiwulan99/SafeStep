@@ -1,0 +1,102 @@
+.sos-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.sos-btn {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #fff;
+  background: radial-gradient(circle at 32% 28%, #e14b83, var(--magenta) 70%);
+  box-shadow: 0 14px 30px -10px rgba(176, 26, 91, 0.55), 0 0 0 8px rgba(176, 26, 91, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sos-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px -10px rgba(176, 26, 91, 0.6), 0 0 0 8px rgba(176, 26, 91, 0.12);
+}
+
+.sos-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.sos-btn--holding {
+  animation: sos-pulse 0.9s ease-in-out infinite;
+}
+
+.sos-btn--sending {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.sos-btn--sent {
+  background: radial-gradient(circle at 32% 28%, #34c17a, var(--success) 70%);
+  box-shadow: 0 14px 30px -10px rgba(31, 165, 92, 0.55);
+}
+
+@keyframes sos-pulse {
+  0%, 100% { box-shadow: 0 14px 30px -10px rgba(176, 26, 91, 0.55), 0 0 0 8px rgba(176, 26, 91, 0.14); }
+  50% { box-shadow: 0 14px 34px -8px rgba(176, 26, 91, 0.7), 0 0 0 14px rgba(176, 26, 91, 0.05); }
+}
+
+.sos-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.sos-ring__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 4;
+}
+
+.sos-ring__progress {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.05s linear;
+}
+
+.sos-btn__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.sos-btn__label {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.sos-hint {
+  font-size: 12px;
+  color: var(--slate);
+  text-align: center;
+  max-width: 150px;
+}
+
+.sos-hint--error {
+  color: var(--danger);
+}

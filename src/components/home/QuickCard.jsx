@@ -1,60 +1,25 @@
-import React from 'react';
+import "./QuickCard.css";
 
-export const QuickCard = ({ iconSvg, iconBg, title, description, actionText, onClick }) => {
+export default function QuickCard({
+  title,
+  description,
+  icon,
+  tone = "pink", 
+  onClick,
+  actionLabel,
+}) {
   return (
-    <div style={styles.card}>
-      <div style={{ ...styles.iconBox, backgroundColor: iconBg }}>
-        {iconSvg}
+    <button
+      type="button"
+      className={`quick-card quick-card--${tone}`}
+      onClick={onClick}
+    >
+      <div className="quick-card__text">
+        <p className="quick-card__title">{title}</p>
+        <p className="quick-card__desc">{description}</p>
+        {actionLabel && <span className="quick-card__cta">{actionLabel} →</span>}
       </div>
-      <div>
-        <h3 style={styles.title}>{title}</h3>
-        <p style={styles.desc}>{description}</p>
-        <button onClick={onClick} style={styles.actionBtn}>
-          {actionText}
-        </button>
-      </div>
-    </div>
+      {icon && <div className="quick-card__icon">{icon}</div>}
+    </button>
   );
-};
-
-const styles = {
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '20px',
-    display: 'flex',
-    gap: '16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-    border: '1px solid #f1f5f9',
-  },
-  iconBox: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  title: {
-    margin: '0 0 6px 0',
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  desc: {
-    margin: '0 0 12px 0',
-    fontSize: '13px',
-    color: '#64748b',
-    lineHeight: '1.4',
-  },
-  actionBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#6366f1',
-    fontWeight: '600',
-    fontSize: '13px',
-    cursor: 'pointer',
-    padding: 0,
-  },
-};
+}
