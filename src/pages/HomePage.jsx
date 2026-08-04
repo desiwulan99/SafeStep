@@ -20,7 +20,7 @@ const MOCK_ACTIVITY = [
   { id: 3, type: "guardian", title: "Live Guardian dengan Kak Dinda selesai", time: "2 hari lalu" },
 ];
 
-export default function HomePage({ userName = "user" }) {
+export default function HomePage({ userName = "user", onNavigate }) {
   const { position, status: geoStatus } = useGeolocation();
   const { placeName } = useReverseGeocode(position);
 
@@ -52,7 +52,7 @@ export default function HomePage({ userName = "user" }) {
       )}
 
       <div className="home-page__body">
-        <Sidebar activeKey="home" />
+        <Sidebar activeKey="home" onNavigate={onNavigate} />
 
         <main className="home-page__main">
           <MapSection
@@ -63,7 +63,7 @@ export default function HomePage({ userName = "user" }) {
             geoStatus={geoStatus}
           />
 
-          <ReportBanner onReport={() => console.log("navigate: anonymous report")} />
+          <ReportBanner onReport={() => onNavigate?.({ key: "report" })} />
 
           <RecentActivity items={MOCK_ACTIVITY} />
         </main>
