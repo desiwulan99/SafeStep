@@ -1,5 +1,5 @@
 import React from 'react';
-import mascotImg from '../../assets/images/mascot.png';
+import mascotImg from "../../../assets/images/mascot.png";
 
 export const LiveGuardianCard = ({ onClick }) => {
   return (

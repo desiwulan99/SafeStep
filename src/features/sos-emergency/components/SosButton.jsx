@@ -1,54 +1,73 @@
-import React from 'react';
+import { useEffect } from "react";
+import { Heart, Check } from "lucide-react";
+import { useSosTrigger } from "../hooks/userSosTrigger";
+import "./SosButton.css";
 
-export const SosButton = ({ onTriggerSos }) => {
+export default function SosButton({ position, userId, onSent }) {
+  const { phase, progress, errorMessage, startHold, cancelHold, fire, reset } =
+    useSosTrigger({ position, userId });
+
+  useEffect(() => {
+    if (phase === "sent") {
+      onSent?.();
+      const t = setTimeout(reset, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, onSent, reset]);
+
+  const handleClick = () => {
+    if (phase === "idle" || phase === "holding") {
+      fire();
+    }
+  };
+
+  const label =
+    phase === "holding"
+      ? "Tahan..."
+      : phase === "sending"
+      ? "Mengirim..."
+      : phase === "sent"
+      ? "Terkirim"
+      : "SOS";
+
+  const circumference = 2 * Math.PI * 46;
+
   return (
-    <div style={styles.container}>
+    <div className="sos-wrap">
       <button
-        onClick={onTriggerSos}
-        style={styles.sosCircle}
-        aria-label="Tombol SOS Darurat"
+        type="button"
+        className={`sos-btn sos-btn--${phase}`}
+        onClick={handleClick}
+        onPointerDown={startHold}
+        onPointerUp={cancelHold}
+        onPointerLeave={cancelHold}
+        aria-label="Tekan untuk mengirim sinyal SOS"
+        disabled={phase === "sending" || phase === "sent"}
       >
-        <div style={styles.iconWrapper}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="7 13 12 18 17 13" />
-            <polyline points="7 6 12 11 17 6" />
-          </svg>
-        </div>
-        <span style={styles.sosText}>SOS</span>
+        <svg className="sos-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle className="sos-ring__track" cx="50" cy="50" r="46" />
+          <circle
+            className="sos-ring__progress"
+            cx="50"
+            cy="50"
+            r="46"
+            style={{
+              strokeDasharray: circumference,
+              strokeDashoffset: circumference * (1 - progress),
+            }}
+          />
+        </svg>
+        <span className="sos-btn__icon" aria-hidden="true">
+          {phase === "sent" ? (
+            <Check size={26} strokeWidth={3} />
+          ) : (
+            <Heart size={24} strokeWidth={2.4} fill={phase === "holding" ? "currentColor" : "none"} />
+          )}
+        </span>
+        <span className="sos-btn__label">{label}</span>
       </button>
+      <p className="sos-hint">Klik atau tahan tombol untuk memicu SOS</p>
+      {errorMessage && <p className="sos-hint sos-hint--error">{errorMessage}</p>}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  sosCircle: {
-    width: '200px',
-    height: '200px',
-    borderRadius: '50%',
-    backgroundColor: '#b90053',
-    border: '12px solid #a00047',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#ffffff',
-    cursor: 'pointer',
-    boxShadow: '0 8px 20px rgba(185, 0, 83, 0.3)',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    outline: 'none',
-  },
-  iconWrapper: {
-    marginBottom: '4px',
-  },
-  sosText: {
-    fontSize: '32px',
-    fontWeight: '800',
-    letterSpacing: '2px',
-  },
-};
+}
