@@ -43,9 +43,9 @@
 }
 
 .sidebar__item--active {
-  background: linear-gradient(135deg, var(--magenta, #b01a5b), #d84b86);
+  background: #a81b58;
   color: #fff;
-  box-shadow: 0 10px 22px -10px rgba(176, 26, 91, 0.55);
+  box-shadow: 0 8px 20px -8px rgba(168, 27, 88, 0.45);
 }
 
 .sidebar__icon {
