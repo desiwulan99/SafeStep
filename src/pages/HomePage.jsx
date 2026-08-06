@@ -11,7 +11,7 @@ import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { getNearbySafePoints } from "../services/riskService";
-import mascotImg from "../assets/images/mascot.png";
+import mascotImg from "../assets/images/mascot.svg";
 import "./HomePage.css";
 
 const MOCK_ACTIVITY = [
