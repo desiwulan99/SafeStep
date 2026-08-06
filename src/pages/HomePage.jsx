@@ -28,8 +28,8 @@ export default function HomePage({ userName = "user", onNavigate }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    if (!position) return;
-    getNearbySafePoints({ lat: position.lat, lng: position.lng }).then(setSafePoints);
+    const coords = position || { lat: -6.2088, lng: 106.8456 };
+    getNearbySafePoints({ lat: coords.lat, lng: coords.lng }).then(setSafePoints);
   }, [position]);
 
   const handleSosSent = () => {
