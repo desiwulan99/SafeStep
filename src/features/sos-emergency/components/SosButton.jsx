@@ -1,45 +1,73 @@
-import React from 'react';
+import { useEffect } from "react";
+import { Heart, Check } from "lucide-react";
+import { useSosTrigger } from "../hooks/userSosTrigger";
+import "./SosButton.css";
 
-export const SosButton = () => {
-  const handleSosTrigger = () => {
-    alert('SINYAL DARURAT DISIARKAN! Kontak tepercaya sedang dihubungi.');
+export default function SosButton({ position, userId, onSent }) {
+  const { phase, progress, errorMessage, startHold, cancelHold, fire, reset } =
+    useSosTrigger({ position, userId });
+
+  useEffect(() => {
+    if (phase === "sent") {
+      onSent?.();
+      const t = setTimeout(reset, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, onSent, reset]);
+
+  const handleClick = () => {
+    if (phase === "idle" || phase === "holding") {
+      fire();
+    }
   };
 
-  return (
-    <button
-      onClick={handleSosTrigger}
-      style={styles.sosFloatingBtn}
-      aria-label="Tombol Darurat SOS"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-      <span>SOS</span>
-    </button>
-  );
-};
+  const label =
+    phase === "holding"
+      ? "Tahan..."
+      : phase === "sending"
+      ? "Mengirim..."
+      : phase === "sent"
+      ? "Terkirim"
+      : "SOS";
 
-const styles = {
-  sosFloatingBtn: {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    width: '64px',
-    height: '64px',
-    borderRadius: '50%',
-    backgroundColor: '#dc2626',
-    color: '#ffffff',
-    border: '4px solid #fecaca',
-    boxShadow: '0 8px 24px rgba(220, 38, 38, 0.4)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '800',
-    fontSize: '11px',
-    cursor: 'pointer',
-    zIndex: 100,
-    gap: '2px',
-  },
-};
+  const circumference = 2 * Math.PI * 46;
+
+  return (
+    <div className="sos-wrap">
+      <button
+        type="button"
+        className={`sos-btn sos-btn--${phase}`}
+        onClick={handleClick}
+        onPointerDown={startHold}
+        onPointerUp={cancelHold}
+        onPointerLeave={cancelHold}
+        aria-label="Tekan untuk mengirim sinyal SOS"
+        disabled={phase === "sending" || phase === "sent"}
+      >
+        <svg className="sos-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle className="sos-ring__track" cx="50" cy="50" r="46" />
+          <circle
+            className="sos-ring__progress"
+            cx="50"
+            cy="50"
+            r="46"
+            style={{
+              strokeDasharray: circumference,
+              strokeDashoffset: circumference * (1 - progress),
+            }}
+          />
+        </svg>
+        <span className="sos-btn__icon" aria-hidden="true">
+          {phase === "sent" ? (
+            <Check size={26} strokeWidth={3} />
+          ) : (
+            <Heart size={24} strokeWidth={2.4} fill={phase === "holding" ? "currentColor" : "none"} />
+          )}
+        </span>
+        <span className="sos-btn__label">{label}</span>
+      </button>
+      <p className="sos-hint">Klik atau tahan tombol untuk memicu SOS</p>
+      {errorMessage && <p className="sos-hint sos-hint--error">{errorMessage}</p>}
+    </div>
+  );
+}
