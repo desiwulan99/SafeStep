@@ -20,7 +20,7 @@ export const SAFE_POINT_RADIUS_M = 2000;
 export const NAV_ITEMS = [
   { key: "home", label: "Beranda", icon: "home", path: "/" },
   { key: "safe-route", label: "Peta Aman", icon: "map-pin", path: "/safe-route" },
-  { key: "live-guardian", label: "Live Guardian", shortLabel: "Guardian", icon: "shield-heart", path: "/live-guardian" },
+  { key: "live-guardian", label: "Live Guardian", shortLabel: "Guardian", icon: "heart-wing", path: "/live-guardian" },
   { key: "report", label: "Lapor", icon: "alert", path: "/report" },
 ];
 

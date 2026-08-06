@@ -5,7 +5,7 @@
   width: 100%;
   margin-left: 0;
   padding: 14px 36px 14px 28px;
-  background: linear-gradient(135deg, #ef86ac 0%, #e0608e 100%);
+  background: linear-gradient(135deg, #e8aad1 0%, #ef86ac 100%);
   box-shadow: 0 2px 12px rgba(176, 26, 91, 0.15);
   position: fixed;
   top: 0;
@@ -52,13 +52,19 @@
   transform: scale(1.05);
 }
 
+.navbar__logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
 @media (max-width: 900px) {
   .navbar {
     padding: 12px 18px;
     height: 56px;
   }
   
-  .navbar__brand {
-    font-size: 18px;
+  .navbar__logo {
+    height: 26px;
   }
 }

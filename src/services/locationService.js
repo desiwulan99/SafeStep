@@ -43,3 +43,26 @@ export function distanceInMeters(a, b) {
 
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+
+export async function geocode(query) {
+  if (!query) return null;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=id`;
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" }
+    });
+    if (!res.ok) throw new Error("Geocoding failed");
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        name: data[0].display_name
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error("Error geocoding:", err);
+    return null;
+  }
+}
