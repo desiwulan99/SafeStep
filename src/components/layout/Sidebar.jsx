@@ -1,12 +1,11 @@
-import { Home, MapPin, ShieldCheck, AlertTriangle } from "lucide-react";
 import { NAV_ITEMS } from "../../utils/constants";
 import "./Sidebar.css";
 
 const ICONS = {
-  home: Home,
-  "map-pin": MapPin,
-  "shield-heart": ShieldCheck,
-  alert: AlertTriangle,
+  home: <img src="src\assets\images\home.svg" alt="Home Icon" width="22" height="22" />,
+  "map-pin": <img src="src\assets\images\map-pin.svg" alt="Map Pin Icon" width="22" height="22" />,
+  "heart-wing": <img src="src\assets\images\heart-wing.svg" alt="Alert Icon" width="22" height="22" />,
+  alert: <img src="src\assets\images\report.svg" alt="Alert Icon" width="22" height="22" />,
 };
 
 export default function Sidebar({ activeKey = "home", onNavigate }) {
