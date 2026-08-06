@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "../../components/layout/Sidebar.jsx";
-import { predictSafetyRisk } from "../../services/riskService";
+import { predictSafetyRisk, getSafetyRiskScore } from "../../services/riskService";
 
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 const MONTHS = [
@@ -30,22 +30,53 @@ export const SafeRoute = ({ onNavigate }) => {
   const [startCoords, setStartCoords] = useState(null); // { lat, lng }
   const [endCoords, setEndCoords] = useState(null); // { lat, lng }
 
+  // Helper to format local date-time string YYYY-MM-DDTHH:MM
+  const getLocalISODateTime = (date = new Date()) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+
   // Temporal Filter states
-  const [selectedHour, setSelectedHour] = useState(new Date().getHours());
-  const [selectedDay, setSelectedDay] = useState(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1); // 0 = Mon, 6 = Sun
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // 1-12
+  const [selectedDateTime, setSelectedDateTime] = useState(getLocalISODateTime());
   
-  // Continuous Route predictions states
-  const [prediction, setPrediction] = useState(null); // compat destination prediction
-  const [startPrediction, setStartPrediction] = useState(null);
-  const [endPrediction, setEndPrediction] = useState(null);
-  const [routeDistance, setRouteDistance] = useState("");
-  const [routeDuration, setRouteDuration] = useState(null);
-  const [routePathCoordinates, setRoutePathCoordinates] = useState([]);
-  const [routeSamplePredictions, setRouteSamplePredictions] = useState([]);
-  const [routeAverageScore, setRouteAverageScore] = useState(null);
-  const [routeAverageLevel, setRouteAverageLevel] = useState("");
-  const [highestRiskSegment, setHighestRiskSegment] = useState(null);
+  // Derived temporal values for compatibility (e.g. heatmap query)
+  const dateObj = new Date(selectedDateTime);
+  const selectedHour = dateObj.getHours();
+  const jsDay = dateObj.getDay();
+  const selectedDay = jsDay === 0 ? 6 : jsDay - 1; // Mon = 0, Sun = 6
+  const selectedMonth = dateObj.getMonth() + 1;
+
+  // Multiple Route State
+  const [routesData, setRoutesData] = useState([]); // [{ id: 0, name: "Rute Utama", distance, duration, path: [...], sampledPoints: [...], samplePredictions: [...], score: X, level: "High/Medium/Low", reason: "..." }]
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
+
+  // Selected Route Details for backward compatibility
+  const selectedRoute = routesData[selectedRouteIdx] || null;
+  const prediction = selectedRoute ? selectedRoute.samplePredictions[selectedRoute.samplePredictions.length - 1] : null;
+  const startPrediction = selectedRoute ? selectedRoute.samplePredictions[0] : null;
+  const endPrediction = selectedRoute ? selectedRoute.samplePredictions[selectedRoute.samplePredictions.length - 1] : null;
+  const routeDistance = selectedRoute ? selectedRoute.distance : "";
+  const routeDuration = selectedRoute ? selectedRoute.duration : null;
+  const routePathCoordinates = selectedRoute ? selectedRoute.path : [];
+  const routeSamplePredictions = selectedRoute ? selectedRoute.samplePredictions : [];
+  const routeAverageScore = selectedRoute ? selectedRoute.score : null;
+  const routeAverageLevel = selectedRoute ? selectedRoute.level : "";
+  
+  // Find highest risk segment for backward compatibility
+  let highestRiskSegment = null;
+  if (selectedRoute && selectedRoute.samplePredictions.length > 0) {
+    selectedRoute.samplePredictions.forEach((res, idx) => {
+      if (!highestRiskSegment || res.risk_score > highestRiskSegment.risk_score) {
+        highestRiskSegment = {
+          lat: selectedRoute.sampledPoints[idx].lat,
+          lng: selectedRoute.sampledPoints[idx].lng,
+          risk_score: res.risk_score,
+          risk_level: res.risk_level,
+          index: idx
+        };
+      }
+    });
+  }
 
   // Loaders
   const [isLoadingRisk, setIsLoadingRisk] = useState(false);
@@ -58,10 +89,8 @@ export const SafeRoute = ({ onNavigate }) => {
   const mapInstance = useRef(null);
   const startMarkerRef = useRef(null);
   const endMarkerRef = useRef(null);
-  const polylineRef = useRef(null);
   const heatmapLayerGroup = useRef(null);
   const heatOverlayInstance = useRef(null);
-  const routingControlRef = useRef(null);
 
   // Fetch updated risks for heatmap points dynamically when filters change
   const loadHeatmapRisks = async () => {
@@ -335,157 +364,229 @@ export const SafeRoute = ({ onNavigate }) => {
     }
   }, [startCoords, endCoords]);
 
-  // Perform continuous route risk evaluation along the OSRM path coordinates
-  const evaluateRouteRisks = async (coords) => {
-    if (!coords || coords.length === 0) return;
-    
-    try {
-      // Sample 8 equidistant points along the route coordinate array
-      const sampleSize = 8;
-      const samplePoints = [];
-      
-      if (coords.length <= sampleSize) {
-        coords.forEach(c => samplePoints.push({ lat: c.lat, lng: c.lng }));
-      } else {
-        const step = Math.floor(coords.length / (sampleSize - 1));
-        for (let i = 0; i < sampleSize - 1; i++) {
-          const c = coords[i * step];
-          samplePoints.push({ lat: c.lat, lng: c.lng });
-        }
-        // Always include exact destination coordinates
-        const lastC = coords[coords.length - 1];
-        samplePoints.push({ lat: lastC.lat, lng: lastC.lng });
+  // Helper to sample coords along the route
+  const getSamplePoints = (coords, distanceMeters) => {
+    const sampleCount = 8;
+    const points = [];
+    if (coords.length <= sampleCount) {
+      coords.forEach(c => points.push({ lat: c[0], lng: c[1] }));
+    } else {
+      const step = (coords.length - 1) / (sampleCount - 1);
+      for (let i = 0; i < sampleCount; i++) {
+        const idx = Math.round(i * step);
+        points.push({ lat: coords[idx][0], lng: coords[idx][1] });
       }
-
-      // Parallel request to FastAPI server for all sampled coordinates
-      const promises = samplePoints.map(pt => 
-        predictSafetyRisk(pt.lat, pt.lng, selectedHour, selectedDay, selectedMonth)
-      );
-      const results = await Promise.all(promises);
-
-      // Compute aggregate calculations
-      const avgScore = results.reduce((acc, curr) => acc + curr.risk_score, 0) / results.length;
-      let avgLevel = "Low";
-      if (avgScore >= 70) {
-        avgLevel = "High";
-      } else if (avgScore >= 40) {
-        avgLevel = "Medium";
-      }
-
-      // Find highest risk segment along the route
-      let maxRiskPt = null;
-      results.forEach((res, idx) => {
-        if (!maxRiskPt || res.risk_score > maxRiskPt.risk_score) {
-          maxRiskPt = {
-            lat: samplePoints[idx].lat,
-            lng: samplePoints[idx].lng,
-            risk_score: res.risk_score,
-            risk_level: res.risk_level,
-            index: idx
-          };
-        }
-      });
-
-      // Update states
-      setRouteSamplePredictions(results);
-      setRouteAverageScore(avgScore);
-      setRouteAverageLevel(avgLevel);
-      setHighestRiskSegment(maxRiskPt);
-
-      // Compatibility settings
-      setStartPrediction(results[0]);
-      setEndPrediction(results[results.length - 1]);
-      setPrediction(results[results.length - 1]);
-
-    } catch (error) {
-      console.error("Gagal melakukan evaluasi rute berkelanjutan:", error);
-    } finally {
-      setIsLoadingRisk(false);
     }
+    return points;
   };
 
-  // Connect start & end coordinates with OSRM and draw custom safety-colored route path
+  // Generate and evaluate routes
   useEffect(() => {
-    if (!mapInstance.current || !window.L || !window.L.Routing) return;
+    if (!mapInstance.current || !window.L) return;
 
-    // Clean up previous OSRM controls & custom lines
-    if (routingControlRef.current) {
-      routingControlRef.current.remove();
-      routingControlRef.current = null;
-    }
-    if (polylineRef.current) {
-      polylineRef.current.remove();
-      polylineRef.current = null;
-    }
+    const generateAndEvaluateRoutes = async () => {
+      if (!startCoords || !endCoords) {
+        setRoutesData([]);
+        return;
+      }
 
-    if (startCoords && endCoords) {
       setIsLoadingRisk(true);
+      try {
+        let osrmRoutes = [];
+        try {
+          const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}?overview=full&geometries=geojson&alternatives=true`;
+          const response = await fetch(osrmUrl);
+          const data = await response.json();
+          
+          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            osrmRoutes = data.routes;
+            
+            // If only 1 route is returned, generate a second route via a waypoint
+            if (osrmRoutes.length === 1 && osrmRoutes[0].geometry?.coordinates?.length > 4) {
+              try {
+                const mainCoords = osrmRoutes[0].geometry.coordinates;
+                const midIdx = Math.floor(mainCoords.length / 2);
+                const midCoord = mainCoords[midIdx];
+                
+                // Offset the midpoint coordinates slightly
+                const wpLng = midCoord[0] - 0.005;
+                const wpLat = midCoord[1] + 0.005;
+                
+                const wpUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${wpLng},${wpLat};${endCoords.lng},${endCoords.lat}?overview=full&geometries=geojson`;
+                const wpResponse = await fetch(wpUrl);
+                const wpData = await wpResponse.json();
+                
+                if (wpData.code === 'Ok' && wpData.routes && wpData.routes.length > 0) {
+                  osrmRoutes.push(wpData.routes[0]);
+                }
+              } catch (err) {
+                console.warn("Failed to generate waypoint alternative route:", err);
+              }
+            }
+          } else {
+            throw new Error("Invalid OSRM response structure");
+          }
+        } catch (error) {
+          console.warn("OSRM routing server unavailable, falling back to vector lines:", error);
+          // Fallback to straight-line vectors
+          const pathA = [
+            [startCoords.lat, startCoords.lng],
+            [endCoords.lat, endCoords.lng]
+          ];
+          const midLat = (startCoords.lat + endCoords.lat) / 2;
+          const midLng = (startCoords.lng + endCoords.lng) / 2;
+          const offsetLat = midLat + (endCoords.lng - startCoords.lng) * 0.1;
+          const offsetLng = midLng - (endCoords.lat - startCoords.lat) * 0.1;
+          const pathB = [
+            [startCoords.lat, startCoords.lng],
+            [offsetLat, offsetLng],
+            [endCoords.lat, endCoords.lng]
+          ];
+          
+          osrmRoutes = [
+            {
+              distance: 1000,
+              duration: 900,
+              fallbackPath: pathA,
+              name: "Rute Utama (Vektor)"
+            },
+            {
+              distance: 1200,
+              duration: 1080,
+              fallbackPath: pathB,
+              name: "Rute Alternatif (Vektor)"
+            }
+          ];
+        }
 
-      // Initialize OSRM routing control
-      routingControlRef.current = window.L.Routing.control({
-        waypoints: [
-          window.L.latLng(startCoords.lat, startCoords.lng),
-          window.L.latLng(endCoords.lat, endCoords.lng)
-        ],
-        show: false, // Hide instruction sidebar to keep UI clean and compact
-        addWaypoints: false,
-        draggableWaypoints: false,
-        fitSelectedRoutes: false,
-        lineOptions: {
-          styles: [] // Disable default line drawing of OSRM so we can draw our custom colored path
-        },
-        createMarker: () => null // Disable default markers to avoid duplicates
-      }).addTo(mapInstance.current);
+        // Limit to top 2 routes for comparison
+        const routesToProcess = osrmRoutes.slice(0, 2);
+        
+        const processedRoutes = await Promise.all(routesToProcess.map(async (osrmRoute, index) => {
+          const path = osrmRoute.fallbackPath || osrmRoute.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          const distanceKm = osrmRoute.fallbackPath ? (index === 0 ? "Vektor" : "Offset Vektor") : (osrmRoute.distance / 1000).toFixed(2);
+          const durationMin = Math.round(osrmRoute.duration / 60);
+          
+          // Sample points along the route
+          const sampledPoints = getSamplePoints(path, osrmRoute.fallbackPath ? 1000 : osrmRoute.distance);
+          
+          // Fetch predictions for all sampled points using the new datetime-local picker value
+          const predictions = await Promise.all(sampledPoints.map(pt => 
+            getSafetyRiskScore(pt.lat, pt.lng, selectedDateTime)
+          ));
+          
+          // Aggregate calculations using MAX (worst-case scenario)
+          const maxScore = Math.max(...predictions.map(p => p.risk_score));
+          
+          let level = "Low";
+          if (maxScore >= 70) {
+            level = "High";
+          } else if (maxScore >= 40) {
+            level = "Medium";
+          }
+          
+          // Realistic reason mapping
+          let reason = "Risiko rendah di sepanjang rute";
+          if (maxScore >= 70) {
+            reason = "Risiko tinggi terdeteksi di sebagian rute ini";
+          } else if (maxScore >= 40) {
+            reason = "Risiko sedang di beberapa titik";
+          }
+          
+          return {
+            id: index,
+            name: osrmRoute.name || (index === 0 ? "Rute Utama" : "Rute Alternatif"),
+            distance: distanceKm,
+            duration: durationMin,
+            path,
+            sampledPoints,
+            samplePredictions: predictions,
+            score: maxScore,
+            level,
+            reason
+          };
+        }));
 
-      routingControlRef.current.on('routesfound', async (e) => {
-        const routes = e.routes;
-        const route = routes[0];
-        const coordinates = route.coordinates;
+        setRoutesData(processedRoutes);
+        setSelectedRouteIdx(0);
+      } catch (err) {
+        console.error("Gagal memproses evaluasi rute:", err);
+      } finally {
+        setIsLoadingRisk(false);
+      }
+    };
 
-        // Save metadata
-        setRouteDistance((route.summary.totalDistance / 1000).toFixed(2)); // in km
-        setRouteDuration(Math.round(route.summary.totalTime / 60)); // in minutes
-        setRoutePathCoordinates(coordinates);
+    generateAndEvaluateRoutes();
+  }, [startCoords, endCoords, selectedDateTime]);
 
-        // Run safety analysis
-        await evaluateRouteRisks(coordinates);
-      });
+  // Ref to hold the multiple route polyline layers
+  const routeLayersGroup = useRef(null);
 
-      routingControlRef.current.on('routingerror', (err) => {
-        console.warn("OSRM routing server unavailable, falling back to straight-line:", err);
-        // Fallback to straight line vector if OSRM demo server fails
-        const fallbackLines = [
-          [startCoords.lat, startCoords.lng],
-          [endCoords.lat, endCoords.lng]
-        ];
-        setRoutePathCoordinates(fallbackLines);
-        setRouteDistance("Vektor");
-        setRouteDuration(10);
-        evaluateRouteRisks(fallbackLines);
-      });
-    }
-  }, [startCoords, endCoords, selectedHour, selectedDay, selectedMonth]);
-
-  // Synchronize route polyline color dynamically based on calculated average risk level
+  // Synchronize route polylines on map
   useEffect(() => {
-    if (!mapInstance.current || !window.L || !routePathCoordinates.length) return;
+    if (!mapInstance.current || !window.L) return;
 
-    if (polylineRef.current) {
-      polylineRef.current.remove();
-      polylineRef.current = null;
+    if (!routeLayersGroup.current) {
+      routeLayersGroup.current = window.L.featureGroup().addTo(mapInstance.current);
+    } else {
+      routeLayersGroup.current.clearLayers();
     }
 
-    // Colors: Red for High, Orange for Medium, Blue/Green for Low
-    const routeColor = routeAverageLevel === "High" ? "#ef4444" : routeAverageLevel === "Medium" ? "#f59e0b" : "#2563eb";
+    if (routesData.length === 0) return;
 
-    polylineRef.current = window.L.polyline(routePathCoordinates, {
-      color: routeColor,
-      weight: 6,
-      opacity: 0.85
-    }).addTo(mapInstance.current);
+    routesData.forEach((route) => {
+      const isSelected = route.id === selectedRouteIdx;
+      
+      let lineStyle;
+      if (isSelected) {
+        const color = route.level === "High" ? "#ef4444" : route.level === "Medium" ? "#f59e0b" : "#10b981";
+        lineStyle = {
+          color: color,
+          weight: 7,
+          opacity: 0.9,
+          lineJoin: 'round'
+        };
+        
+        // Draw a soft glowing outline underneath for selected route
+        window.L.polyline(route.path, {
+          color: color,
+          weight: 12,
+          opacity: 0.25,
+          lineJoin: 'round'
+        }).addTo(routeLayersGroup.current);
+      } else {
+        lineStyle = {
+          color: "#94a3b8", // neutral slate
+          weight: 4,
+          opacity: 0.55,
+          dashArray: "6, 12",
+          lineJoin: 'round'
+        };
+      }
 
-    mapInstance.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
-  }, [routePathCoordinates, routeAverageLevel]);
+      const poly = window.L.polyline(route.path, lineStyle)
+        .addTo(routeLayersGroup.current)
+        .bindTooltip(`<b>${route.name}</b><br/>Skor Risiko: ${route.score.toFixed(0)} (${route.level})`, {
+          sticky: true,
+          opacity: 0.9
+        });
+      
+      // Select route when clicking its polyline
+      poly.on('click', () => {
+        setSelectedRouteIdx(route.id);
+      });
+    });
+
+    // Fit map bounds to show all routes
+    try {
+      const bounds = routeLayersGroup.current.getBounds();
+      if (bounds.isValid()) {
+        mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+      }
+    } catch (e) {
+      console.warn("Failed to fit map bounds:", e);
+    }
+  }, [routesData, selectedRouteIdx]);
 
   const handleNavigation = (menuName, routePath) => {
     setActiveTab(menuName);
@@ -499,23 +600,23 @@ export const SafeRoute = ({ onNavigate }) => {
     alert(`Rute aman dari "${startPoint.split(' (')[0]}" menuju "${endPoint.split(' (')[0]}" berhasil dikirim ke Live Guardian!`);
   };
 
-  // Generate safety insights text based on average MLOps API score
-  const getSafetyAnalysis = (avgScore, hour) => {
+  // Generate safety insights text based on MLOps API score
+  const getSafetyAnalysis = (routeScore, hour) => {
     let analysis = "";
     let recommendation = "";
     let scoreColor = "#10b981";
 
-    if (avgScore >= 70) {
+    if (routeScore >= 70) {
       scoreColor = "#ef4444";
-      analysis = `Rute komuter terdeteksi memiliki tingkat kerawanan TINGGI (skor rata-rata: ${avgScore.toFixed(1)}/100).`;
+      analysis = `Rute komuter terdeteksi memiliki tingkat kerawanan TINGGI (skor rute (max): ${routeScore.toFixed(1)}/100).`;
       if (hour >= 20 || hour <= 4) {
         recommendation = "Kombinasi jam malam dan segmen wilayah dengan risiko tinggi sangat berbahaya. Disarankan memesan taksi roda empat/ojek resmi terpercaya, hindari berjalan kaki sendirian, dan aktifkan fitur 'Live Guardian' sekarang.";
       } else {
         recommendation = "Area jalan raya ini terpantau rawan kejahatan jalanan pada jam padat. Simpan barang berharga Anda dengan aman di dalam tas, tetap berjalan di rute utama, dan hindari lorong sepi.";
       }
-    } else if (avgScore >= 40) {
+    } else if (routeScore >= 40) {
       scoreColor = "#f59e0b";
-      analysis = `Rute komuter terpantau memiliki tingkat kerawanan SEDANG (skor rata-rata: ${avgScore.toFixed(1)}/100).`;
+      analysis = `Rute komuter terpantau memiliki tingkat kerawanan SEDANG (skor rute (max): ${routeScore.toFixed(1)}/100).`;
       if (hour >= 18 || hour <= 5) {
         recommendation = "Penerangan jalan di beberapa bagian rute minim di malam hari. Berjalanlah dengan langkah pasti di tempat terang, pastikan daya baterai ponsel, dan pantau sekeliling Anda.";
       } else {
@@ -523,7 +624,7 @@ export const SafeRoute = ({ onNavigate }) => {
       }
     } else {
       scoreColor = "#10b981";
-      analysis = `Rute komuter terpantau AMAN dan minim risiko (skor rata-rata: ${avgScore.toFixed(1)}/100).`;
+      analysis = `Rute komuter terpantau AMAN dan minim risiko (skor rute (max): ${routeScore.toFixed(1)}/100).`;
       recommendation = "Pengawasan lingkungan aktif, lampu jalan memadai, dan laporan kriminalitas rendah pada jam ini. Anda dapat berkendara dengan tenang.";
     }
 
@@ -613,54 +714,18 @@ export const SafeRoute = ({ onNavigate }) => {
             <span style={styles.filterBadge}>Dinamis</span>
           </div>
           <div style={styles.filterBody}>
-            {/* Hour Slider Control */}
             <div style={styles.filterGroup}>
               <div style={styles.filterLabelRow}>
-                <span style={styles.filterLabel}>Waktu Keberangkatan:</span>
-                <span style={styles.filterValue}>{selectedHour.toString().padStart(2, '0')}:00</span>
+                <span style={styles.filterLabel}>Pilih Tanggal & Waktu Keberangkatan:</span>
               </div>
               <input
-                type="range"
-                min="0"
-                max="23"
-                value={selectedHour}
-                onChange={(e) => setSelectedHour(parseInt(e.target.value))}
-                style={styles.slider}
+                type="datetime-local"
+                value={selectedDateTime}
+                onChange={(e) => setSelectedDateTime(e.target.value)}
+                style={styles.datetimeInput}
               />
-              <div style={styles.sliderTicks}>
-                <span>Pagi (06:00)</span>
-                <span>Siang (12:00)</span>
-                <span>Sore (18:00)</span>
-                <span>Tengah Malam (24:00)</span>
-              </div>
-            </div>
-
-            {/* Day and Month Select controls */}
-            <div style={styles.selectRow}>
-              <div style={styles.selectGroup}>
-                <label style={styles.filterSelectLabel}>Hari Perjalanan:</label>
-                <select
-                  value={selectedDay}
-                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                  style={styles.select}
-                >
-                  {DAYS.map((day, idx) => (
-                    <option key={idx} value={idx}>{day}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.selectGroup}>
-                <label style={styles.filterSelectLabel}>Bulan:</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  style={styles.select}
-                >
-                  {MONTHS.map((month, idx) => (
-                    <option key={idx} value={idx + 1}>{month}</option>
-                  ))}
-                </select>
+              <div style={styles.datetimeHelper}>
+                Menganalisis risiko temporal: <b>{DAYS[selectedDay]}</b> pukul <b>{selectedHour.toString().padStart(2, '0')}:00</b> (Bulan {MONTHS[selectedMonth - 1]})
               </div>
             </div>
           </div>
@@ -695,6 +760,77 @@ export const SafeRoute = ({ onNavigate }) => {
           )}
         </div>
 
+        {/* Route Comparison Panel */}
+        {hasCommuteSelected && routesData.length > 0 && (
+          <div style={styles.comparisonCard}>
+            <div style={styles.comparisonHeader}>
+              <span style={styles.comparisonTitle}>🗺️ Perbandingan Rute Alternatif</span>
+              <span style={styles.comparisonSubTitle}>Pilih rute untuk melihat rincian keamanan</span>
+            </div>
+            <div style={styles.comparisonRow}>
+              {routesData.map((route) => {
+                const isSelected = route.id === selectedRouteIdx;
+                const isSafest = routesData.length > 1 && route.score === Math.min(...routesData.map(r => r.score));
+                const color = route.level === "High" ? "#ef4444" : route.level === "Medium" ? "#f59e0b" : "#10b981";
+                
+                return (
+                  <div 
+                    key={route.id}
+                    onClick={() => setSelectedRouteIdx(route.id)}
+                    style={{
+                      ...styles.routeCard,
+                      border: isSelected ? `2.5px solid ${color}` : '1.5px solid #fce7f3',
+                      backgroundColor: isSelected ? `${color}05` : '#ffffff',
+                    }}
+                  >
+                    <div style={styles.routeCardHeader}>
+                      <span style={{ ...styles.routeName, color: isSelected ? color : '#1e293b' }}>
+                        {route.name}
+                      </span>
+                      {isSafest && (
+                        <span style={styles.safestBadge}>
+                          🛡️ Paling Aman
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div style={styles.routeCardStats}>
+                      <div style={styles.statItem}>
+                        <span style={styles.statLabel}>Waktu</span>
+                        <span style={styles.statValue}>{route.duration} mnt</span>
+                      </div>
+                      <div style={styles.statItem}>
+                        <span style={styles.statLabel}>Jarak</span>
+                        <span style={styles.statValue}>{route.distance} km</span>
+                      </div>
+                      <div style={styles.statItem}>
+                        <span style={styles.statLabel}>Skor Risiko</span>
+                        <span style={{ ...styles.statValue, color: color }}>
+                          {route.score.toFixed(0)}/100
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div style={styles.routeCardFooter}>
+                      <span style={{ ...styles.riskTextBadge, backgroundColor: `${color}15`, color: color }}>
+                        {route.level} Risk
+                      </span>
+                      <span style={styles.reasonText}>
+                        {route.reason}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {routesData.length > 1 && (
+              <div style={styles.aggregationExplanation}>
+                💡 <i>Skor rute dihitung berdasarkan <b>skor maksimum (MAX)</b> dari semua titik sampel di rute tersebut. Ini memastikan area dengan satu titik bahaya ekstrem tidak dikesampingkan oleh segmen rute aman lainnya.</i>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Safe Commute Insights Section */}
         {hasCommuteSelected && commuteInsights && (
           <div style={styles.insightsCard}>
@@ -709,7 +845,7 @@ export const SafeRoute = ({ onNavigate }) => {
                 color: commuteInsights.scoreColor,
                 border: `1.5px solid ${commuteInsights.scoreColor}`
               }}>
-                Rata-rata: {routeAverageLevel === "High" ? "Tinggi" : routeAverageLevel === "Medium" ? "Sedang" : "Rendah"}
+                Risiko: {routeAverageLevel === "High" ? "Tinggi" : routeAverageLevel === "Medium" ? "Sedang" : "Rendah"}
               </div>
             </div>
 
@@ -1448,5 +1584,138 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     marginTop: '10px',
+  },
+  datetimeInput: {
+    padding: '12px 18px',
+    borderRadius: '12px',
+    border: '1.5px solid #fbcfe8',
+    outline: 'none',
+    fontSize: '14px',
+    backgroundColor: '#ffffff',
+    color: '#1e293b',
+    fontFamily: "'Inter', sans-serif",
+    cursor: 'pointer',
+    transition: 'border-color 0.2s',
+  },
+  datetimeHelper: {
+    fontSize: '12px',
+    color: '#64748b',
+    marginTop: '4px',
+  },
+  comparisonCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    padding: '20px',
+    border: '1.5px solid #fce7f3',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+  },
+  comparisonHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    borderBottom: '1px solid #fce7f3',
+    paddingBottom: '10px',
+  },
+  comparisonTitle: {
+    fontSize: '15px',
+    fontWeight: '700',
+    color: '#be185d',
+  },
+  comparisonSubTitle: {
+    fontSize: '11px',
+    color: '#94a3b8',
+  },
+  comparisonRow: {
+    display: 'flex',
+    gap: '16px',
+    flexWrap: 'wrap',
+  },
+  routeCard: {
+    flex: 1,
+    minWidth: '240px',
+    borderRadius: '12px',
+    padding: '16px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+    border: '1.5px solid #fce7f3',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+    }
+  },
+  routeCardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  routeName: {
+    fontSize: '15px',
+    fontWeight: '700',
+  },
+  safestBadge: {
+    backgroundColor: '#d1fae5',
+    color: '#065f46',
+    fontSize: '10px',
+    fontWeight: '700',
+    padding: '2px 8px',
+    borderRadius: '8px',
+  },
+  routeCardStats: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: '1px solid #f1f5f9',
+  },
+  statItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
+  },
+  statLabel: {
+    fontSize: '10px',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  routeCardFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  riskTextBadge: {
+    fontSize: '10px',
+    fontWeight: '700',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    textTransform: 'uppercase',
+  },
+  reasonText: {
+    fontSize: '11px',
+    color: '#475569',
+    fontWeight: '500',
+    flex: 1,
+  },
+  aggregationExplanation: {
+    fontSize: '11px',
+    color: '#64748b',
+    backgroundColor: '#f8fafc',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    borderLeft: '3px solid #be185d',
+    lineHeight: '1.4',
   },
 };
