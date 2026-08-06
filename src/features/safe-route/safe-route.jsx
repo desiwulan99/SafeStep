@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Sidebar } from "../../components/layout/Sidebar.jsx";
+import Sidebar from "../../components/layout/Sidebar.jsx";
 import { predictSafetyRisk, getSafetyRiskScore } from "../../services/riskService";
 
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
