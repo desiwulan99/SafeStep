@@ -14,7 +14,7 @@ export default function MapSection({ userName, position, placeName, safePoints, 
         </span>
       </div>
 
-      <MapWidget center={position} placeName={placeName} safePoints={safePoints} />
+      <MapWidget center={position} placeName={placeName} safePoints={safePoints} geoStatus={geoStatus} />
 
       {geoStatus === "error" && (
         <p className="map-section__notice">
