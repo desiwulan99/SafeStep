@@ -11,7 +11,7 @@ import Toast from "../components/common/Toast";
 import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { reverseGeocode, distanceInMeters } from "../services/locationService";
-import mascotImg from "../assets/images/mascot.png";
+import mascotImg from "../assets/images/mascot.svg";
 import "./SafeRoutePage.css";
 
 const startMarkerIcon = L.divIcon({
