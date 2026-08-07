@@ -268,7 +268,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 520px;
+  height: calc(100vh - 160px);
+  min-height: 520px;
   box-shadow: 0 4px 20px -8px rgba(36, 20, 34, 0.15);
 }
 
@@ -843,7 +844,8 @@
     border-radius: 16px;
   }
   .guardian-page__room-card {
-    height: 480px;
+    height: calc(100vh - 180px);
+    min-height: 480px;
     border-radius: 16px;
   }
 }
