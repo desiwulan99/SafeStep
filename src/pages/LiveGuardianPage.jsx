@@ -304,20 +304,23 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                 <div className="guardian-page__select-contact-list">
                   {contacts.map((c) => (
                     <div key={c.id} className="guardian-page__select-contact-item">
-                      <div className="guardian-page__chat-avatar">
-                        <User size={20} />
-                      </div>
-                      <div className="guardian-page__select-contact-info">
-                        <div className="guardian-page__chat-name-row">
-                          <span className="guardian-page__chat-name">{c.name}</span>
-                          {c.relation && (
-                            <span className="guardian-page__relation-badge">{c.relation}</span>
-                          )}
+                      <div className="guardian-page__select-top-row">
+                        <div className="guardian-page__chat-avatar">
+                          <User size={20} />
                         </div>
-                        <span className="guardian-page__chat-snippet">
-                          {c.phone || "Kontak Tersimpan"}
-                        </span>
+                        <div className="guardian-page__select-contact-info">
+                          <div className="guardian-page__chat-name-row">
+                            <span className="guardian-page__chat-name">{c.name}</span>
+                            {c.relation && (
+                              <span className="guardian-page__relation-badge">{c.relation}</span>
+                            )}
+                          </div>
+                          <span className="guardian-page__chat-snippet">
+                            {c.phone || "Kontak Tersimpan"}
+                          </span>
+                        </div>
                       </div>
+
                       <div className="guardian-page__select-actions">
                         {c.phone && (
                           <a
@@ -336,7 +339,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                         <button
                           type="button"
                           className="guardian-page__activate-btn"
-                          style={{ padding: "6px 14px", fontSize: "12.5px" }}
+                          style={{ flex: 2, padding: "8px 16px", fontSize: "12.5px", textAlign: "center" }}
                           onClick={() => handleSelectGuardian(c.name)}
                         >
                           Pilih
