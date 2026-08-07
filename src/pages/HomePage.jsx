@@ -11,6 +11,7 @@ import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { getNearbySafePoints } from "../services/riskService";
+import { sendSosToGuardian } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.png";
 import "./HomePage.css";
 
@@ -33,10 +34,11 @@ export default function HomePage({ userName = "user" }) {
   }, [position]);
 
   const handleSosSent = () => {
+    sendSosToGuardian({ position, address: placeName });
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
-      description: "Lokasimu sudah dibagikan ke semua kontak darurat.",
+      description: "Lokasimu & notifikasi darurat telah terkirim ke Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
   };
