@@ -997,7 +997,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                   Mengevaluasi rute & risiko...
                 </span>
               )}
-              <ArrowRight size={28} color="#ffffff" strokeWidth={3} style={{ marginLeft: "auto" }} />
+              <ArrowRight size={28} color="#ffffff" strokeWidth={3} />
             </div>
             <p className="safe-route-page__instruction" style={{ fontSize: "12.5px", lineHeight: "1.4" }}>
               {selectedRoute 
