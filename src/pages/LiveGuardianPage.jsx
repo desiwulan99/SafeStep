@@ -28,6 +28,7 @@ import QuickCard from "../components/home/QuickCard";
 import Toast from "../components/common/Toast";
 import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
+import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import {
   getGuardianContacts,
   addGuardianContact,
@@ -49,6 +50,7 @@ const avatarMarkerIcon = L.divIcon({
 
 export default function LiveGuardianPage({ userName = "user", onNavigate }) {
   const { position } = useGeolocation();
+  const { placeName: userPlaceName } = useReverseGeocode(position);
 
   // Navigation / View state: "list" | "chat" | "map"
   const [viewMode, setViewMode] = useState("list");
@@ -420,12 +422,12 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                     <div className="guardian-page__avatar-large">
                       <User size={48} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <h3 className="guardian-page__name-lg">{activeContact}</h3>
-                      <span className="guardian-page__online-badge">Online</span>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                      <h3 className="guardian-page__name-lg">Dipantau oleh {activeContact}</h3>
+                      <span className="guardian-page__online-badge">Lokasi Real-time Anda Aktif</span>
                     </div>
                     <p className="guardian-page__status-text">
-                      Live Guardian aktif memantau perjalanan Anda.
+                      {activeContact} sedang menerima dan memantau pembaruan lokasi perjalanan Anda secara live.
                     </p>
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
                       <button
@@ -718,69 +720,79 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
           )}
 
           {/* VIEW MODE 3: LIVE MAP TRACKING VIEW (Mockup 5) */}
-          {viewMode === "map" && (
-            <>
-              {/* Interactive Leaflet Tracking Map */}
-              <div className="guardian-page__map-tracking-card">
-                <button
-                  type="button"
-                  className="guardian-page__map-close-btn"
-                  onClick={() => setViewMode("list")}
-                  aria-label="Tutup Peta"
-                >
-                  <X size={18} />
-                </button>
+          {viewMode === "map" && (() => {
+            const isUserBeingTracked = isActiveGuardian && activeContact !== "Anita";
+            const trackedDisplayName = isUserBeingTracked
+              ? `Anda (Dipantau oleh ${activeContact})`
+              : activeContact;
+            const trackedAddressLabel = isUserBeingTracked
+              ? (userPlaceName || "Stasiun Manggarai, Jakarta Pusat")
+              : (activeContact === "Anita" ? "Stasiun Manggarai, Pintu Barat" : (userPlaceName || "Lokasi Dipantau"));
 
-                <MapContainer
-                  center={mapCenter}
-                  zoom={16}
-                  scrollWheelZoom={false}
-                  style={{ width: "100%", height: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                  />
-                  <Marker position={mapCenter} icon={avatarMarkerIcon}>
-                    <Popup>📍 Lokasi Real-time: {activeContact}</Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
+            return (
+              <>
+                {/* Interactive Leaflet Tracking Map */}
+                <div className="guardian-page__map-tracking-card">
+                  <button
+                    type="button"
+                    className="guardian-page__map-close-btn"
+                    onClick={() => setViewMode("list")}
+                    aria-label="Tutup Peta"
+                  >
+                    <X size={18} />
+                  </button>
 
-              {/* Bottom Contact Details Card */}
-              <div className="guardian-page__tracking-info-card">
-                <div className="guardian-page__tracking-left">
-                  <div className="guardian-page__tracking-avatar">
-                    <User size={28} />
-                  </div>
-                  <div className="guardian-page__tracking-details">
-                    <div className="guardian-page__tracking-name-row">
-                      <span className="guardian-page__tracking-name">{activeContact}</span>
-                      <span className="guardian-page__online-badge">Online</span>
-                    </div>
-                    <div className="guardian-page__tracking-meta">
-                      <div className="guardian-page__tracking-meta-item">
-                        <MapPin size={14} color="#ffffff" />
-                        <span>St. Manggarai</span>
-                      </div>
-                      <div className="guardian-page__tracking-meta-item">
-                        <Battery size={14} color="#ffffff" />
-                        <span>50%</span>
-                      </div>
-                    </div>
-                  </div>
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={16}
+                    scrollWheelZoom={false}
+                    style={{ width: "100%", height: "100%" }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    />
+                    <Marker position={mapCenter} icon={avatarMarkerIcon}>
+                      <Popup>📍 Lokasi Real-time: {trackedDisplayName}</Popup>
+                    </Marker>
+                  </MapContainer>
                 </div>
 
-                <button
-                  type="button"
-                  className="guardian-page__chat-action-btn"
-                  onClick={() => setViewMode("chat")}
-                >
-                  Chat
-                </button>
-              </div>
-            </>
-          )}
+                {/* Bottom Contact Details Card */}
+                <div className="guardian-page__tracking-info-card">
+                  <div className="guardian-page__tracking-left">
+                    <div className="guardian-page__tracking-avatar">
+                      <User size={28} />
+                    </div>
+                    <div className="guardian-page__tracking-details">
+                      <div className="guardian-page__tracking-name-row">
+                        <span className="guardian-page__tracking-name">{trackedDisplayName}</span>
+                        <span className="guardian-page__online-badge">Online</span>
+                      </div>
+                      <div className="guardian-page__tracking-meta">
+                        <div className="guardian-page__tracking-meta-item">
+                          <MapPin size={14} color="#ffffff" />
+                          <span>{trackedAddressLabel}</span>
+                        </div>
+                        <div className="guardian-page__tracking-meta-item">
+                          <Battery size={14} color="#ffffff" />
+                          <span>85%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="guardian-page__chat-action-btn"
+                    onClick={() => setViewMode("chat")}
+                  >
+                    Chat
+                  </button>
+                </div>
+              </>
+            );
+          })()}
         </main>
 
         {/* Right Side Column */}
