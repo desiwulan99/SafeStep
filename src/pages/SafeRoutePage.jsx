@@ -11,8 +11,9 @@ import Toast from "../components/common/Toast";
 import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
-import { reverseGeocode, distanceInMeters, geocode } from "../services/locationService";
+import { reverseGeocode, distanceInMeters, geocode, geocodeSearch } from "../services/locationService";
 import { getNearbySafePoints, getSafetyRiskScore } from "../services/riskService";
+import { sendRouteToGuardian, sendSosToGuardian } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.svg";
 import "./SafeRoutePage.css";
 
@@ -46,30 +47,112 @@ function MapRouteClickListener({ onSelectPoint }) {
   return null;
 }
 
-function MapBoundsUpdater({ coords }) {
+function MapBoundsUpdater({ routesData }) {
   const map = useMap();
   useEffect(() => {
-    if (coords && coords.length > 0) {
-      const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, { padding: [40, 40] });
+    if (routesData && routesData.length > 0) {
+      const allPoints = routesData.flatMap((r) => r.path);
+      if (allPoints.length > 0) {
+        const bounds = L.latLngBounds(allPoints);
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
     }
-  }, [coords, map]);
+  }, [routesData, map]);
   return null;
 }
 
-const generateOffsetPath = (path, offsetLat, offsetLng) => {
-  if (path.length < 3) return path.map(([lat, lng]) => [lat + offsetLat, lng + offsetLng]);
-  const newPath = [];
-  // Keep start exactly the same
-  newPath.push(path[0]);
-  // Offset middle points
-  for (let i = 1; i < path.length - 1; i++) {
-    newPath.push([path[i][0] + offsetLat, path[i][1] + offsetLng]);
+/**
+ * Extract top major roads sorted by total distance traveled on each road segment.
+ * Preserves route sequence while selecting the most significant streets.
+ */
+const extractMajorRoads = (route) => {
+  const steps = route.legs?.[0]?.steps || [];
+  const roadDist = {};
+  const roadOrder = [];
+  for (const step of steps) {
+    const name = step.name;
+    if (name && name.trim() && name !== "jalan tanpa nama" && step.distance > 20) {
+      if (!roadDist[name]) roadOrder.push(name);
+      roadDist[name] = (roadDist[name] || 0) + step.distance;
+    }
   }
-  // Keep end exactly the same
-  newPath.push(path[path.length - 1]);
-  return newPath;
+
+  if (roadOrder.length === 0) return ["Jalan Utama"];
+
+  // Sort roads by total distance in descending order
+  const sortedByDistance = [...roadOrder].sort((a, b) => roadDist[b] - roadDist[a]);
+  // Take top 3 longest roads, preserving their original sequential order in the route
+  const topRoadsSet = new Set(sortedByDistance.slice(0, 3));
+  return roadOrder.filter(r => topRoadsSet.has(r));
 };
+
+/**
+ * Generate a smooth curved detour path from a primary path by applying a perpendicular sine-bell offset.
+ * Guarantees distinct geometry on map while keeping identical start and end points.
+ */
+const generateCurvedDetour = (primaryPath, offsetKm = 1.5, isLeft = true) => {
+  if (!primaryPath || primaryPath.length < 3) return primaryPath;
+
+  const start = primaryPath[0]; // [lat, lng]
+  const end = primaryPath[primaryPath.length - 1]; // [lat, lng]
+
+  const dLat = end[0] - start[0];
+  const dLng = end[1] - start[1];
+  const len = Math.hypot(dLat, dLng);
+  if (len === 0) return primaryPath;
+
+  const sign = isLeft ? 1 : -1;
+  const degOffset = (offsetKm / 111) * sign;
+  const pLat = (-dLng / len) * degOffset;
+  const pLng = (dLat / len) * degOffset;
+
+  const N = primaryPath.length;
+  return primaryPath.map(([lat, lng], i) => {
+    const t = i / (N - 1);
+    const bell = Math.sin(t * Math.PI); // 0 at start, 1 at middle, 0 at end
+    return [lat + pLat * bell, lng + pLng * bell];
+  });
+};
+
+/**
+ * Build a descriptive route name from major road names.
+ * e.g. "via Jl. Sudirman → Jl. Thamrin"
+ */
+const buildRouteName = (roads, index) => {
+  const prefix = index === 0 ? "Rute Utama" : `Rute Alternatif ${index}`;
+  if (!roads || roads.length === 0) return prefix;
+  const display = roads.slice(0, 3).join(" → ");
+  return `${prefix} — via ${display}`;
+};
+
+/**
+ * Fetch a real OSRM route through a via-waypoint to create an alternative.
+ * Returns null if the request fails.
+ */
+const fetchRouteViaWaypoint = async (start, end, viaLat, viaLng, profile = "foot") => {
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${viaLng},${viaLat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const allSteps = route.legs.flatMap(leg => leg.steps || []);
+      return {
+        geometry: route.geometry,
+        distance: route.distance,
+        duration: route.duration,
+        legs: [{ steps: allSteps }]
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/** Route color palette — distinct colors for up to 3 routes */
+const ROUTE_COLORS = ["#b01a5b", "#2563eb", "#059669"];
 
 export default function SafeRoutePage({ userName = "user", onNavigate }) {
   const { position } = useGeolocation();
@@ -81,6 +164,18 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   const [startCoords, setStartCoords] = useState(null);
   const [endCoords, setEndCoords] = useState(null);
   const [activeSelectMode, setActiveSelectMode] = useState("start"); // "start" | "end"
+
+  // Autocomplete suggestion state
+  const [startSuggestions, setStartSuggestions] = useState([]);
+  const [endSuggestions, setEndSuggestions] = useState([]);
+  const [showStartSuggestions, setShowStartSuggestions] = useState(false);
+  const [showEndSuggestions, setShowEndSuggestions] = useState(false);
+  const startSearchTimer = useRef(null);
+  const endSearchTimer = useRef(null);
+  const startAbortRef = useRef(null);
+  const endAbortRef = useRef(null);
+  const startInputWrapperRef = useRef(null);
+  const endInputWrapperRef = useRef(null);
 
   const [isSentToGuardian, setIsSentToGuardian] = useState(false);
   const [showSosOverlay, setShowSosOverlay] = useState(false);
@@ -144,6 +239,106 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
   const handleInputFocus = (mode) => {
     setActiveSelectMode(mode);
+  };
+
+  // Debounced search for autocomplete suggestions
+  const handleStartInputChange = (value) => {
+    setStartPoint(value);
+    setStartCoords(null);
+
+    // Cancel previous search
+    if (startSearchTimer.current) clearTimeout(startSearchTimer.current);
+    if (startAbortRef.current) startAbortRef.current.abort();
+
+    if (!value || value.trim().length < 2) {
+      setStartSuggestions([]);
+      setShowStartSuggestions(false);
+      return;
+    }
+
+    startSearchTimer.current = setTimeout(async () => {
+      const controller = new AbortController();
+      startAbortRef.current = controller;
+      const results = await geocodeSearch(value, { signal: controller.signal });
+      if (results.length > 0) {
+        setStartSuggestions(results);
+        setShowStartSuggestions(true);
+      } else {
+        setStartSuggestions([]);
+        setShowStartSuggestions(false);
+      }
+    }, 350);
+  };
+
+  const handleEndInputChange = (value) => {
+    setEndPoint(value);
+    setEndCoords(null);
+
+    if (endSearchTimer.current) clearTimeout(endSearchTimer.current);
+    if (endAbortRef.current) endAbortRef.current.abort();
+
+    if (!value || value.trim().length < 2) {
+      setEndSuggestions([]);
+      setShowEndSuggestions(false);
+      return;
+    }
+
+    endSearchTimer.current = setTimeout(async () => {
+      const controller = new AbortController();
+      endAbortRef.current = controller;
+      const results = await geocodeSearch(value, { signal: controller.signal });
+      if (results.length > 0) {
+        setEndSuggestions(results);
+        setShowEndSuggestions(true);
+      } else {
+        setEndSuggestions([]);
+        setShowEndSuggestions(false);
+      }
+    }, 350);
+  };
+
+  const handleSelectStartSuggestion = (suggestion) => {
+    setStartPoint(suggestion.shortName);
+    setStartCoords({ lat: suggestion.lat, lng: suggestion.lng });
+    setStartSuggestions([]);
+    setShowStartSuggestions(false);
+    setActiveSelectMode("end");
+  };
+
+  const handleSelectEndSuggestion = (suggestion) => {
+    setEndPoint(suggestion.shortName);
+    setEndCoords({ lat: suggestion.lat, lng: suggestion.lng });
+    setEndSuggestions([]);
+    setShowEndSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (startInputWrapperRef.current && !startInputWrapperRef.current.contains(e.target)) {
+        setShowStartSuggestions(false);
+      }
+      if (endInputWrapperRef.current && !endInputWrapperRef.current.contains(e.target)) {
+        setShowEndSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Helper to get icon based on place type/category
+  const getSuggestionIcon = (suggestion) => {
+    const cat = suggestion.category;
+    const type = suggestion.type;
+    if (cat === "amenity" || type === "university" || type === "school" || type === "college") return "🏫";
+    if (cat === "building" || type === "apartments" || type === "residential") return "🏢";
+    if (type === "hospital" || type === "clinic" || type === "doctors") return "🏥";
+    if (type === "mall" || type === "supermarket" || type === "marketplace") return "🛒";
+    if (cat === "tourism" || cat === "historic" || type === "museum") return "🏛️";
+    if (cat === "highway" || type === "road" || type === "street") return "🛣️";
+    if (cat === "railway" || type === "station" || type === "halt") return "🚉";
+    if (cat === "place" || type === "city" || type === "town" || type === "village") return "🏘️";
+    return "📍";
   };
 
   const handleMapClick = async (clickedCoords) => {
@@ -215,8 +410,9 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
     setIsLoading(true);
     try {
-      // OSRM foot routing dengan alternative=true dan steps=true
-      const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${finalStartCoords.lng},${finalStartCoords.lat};${finalEndCoords.lng},${finalEndCoords.lat}?overview=full&geometries=geojson&alternative=true&steps=true`;
+      // OSRM routing with alternatives=true (correct parameter name) and steps=true
+      let profile = "foot";
+      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${finalStartCoords.lng},${finalStartCoords.lat};${finalEndCoords.lng},${finalEndCoords.lat}?overview=full&geometries=geojson&alternatives=3&steps=true`;
       
       const res = await fetch(osrmUrl);
       let routesList = [];
@@ -228,10 +424,11 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
         }
       }
 
-      // Jika rute jalan kaki gagal (snapping error/tidak ada jalur), coba gunakan driving profile
+      // Jika rute jalan kaki gagal (snapping error), coba driving profile
       if (routesList.length === 0) {
         console.warn("Pedestrian snap failed. Trying driving profile fallback...");
-        const drivingUrl = `https://router.project-osrm.org/route/v1/driving/${finalStartCoords.lng},${finalStartCoords.lat};${finalEndCoords.lng},${finalEndCoords.lat}?overview=full&geometries=geojson&alternative=true&steps=true`;
+        profile = "driving";
+        const drivingUrl = `https://router.project-osrm.org/route/v1/${profile}/${finalStartCoords.lng},${finalStartCoords.lat};${finalEndCoords.lng},${finalEndCoords.lat}?overview=full&geometries=geojson&alternatives=3&steps=true`;
         const resDriving = await fetch(drivingUrl);
         if (resDriving.ok) {
           const dataDriving = await resDriving.json();
@@ -256,47 +453,71 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
         }];
       }
 
-      // Jika hanya ada 1 rute, kita buat secara dinamis 2 rute alternatif di sekitarnya
+      // If OSRM returned fewer than 3 routes, generate distinct via-waypoint routes or curved detours
       let rawRoutes = [...routesList];
-      if (rawRoutes.length === 1) {
+      if (rawRoutes.length < 3) {
         const primaryRoute = rawRoutes[0];
-        const primaryPath = primaryRoute.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        
-        // Alternatif 1
-        const altPath1 = generateOffsetPath(primaryPath, 0.0012, -0.0008);
-        const altSteps1 = (primaryRoute.legs?.[0]?.steps || []).map((step, sIdx) => ({
-          ...step,
-          name: sIdx === 0 ? step.name : `Jalan Alternatif A`
-        }));
-        const altRoute1 = {
-          geometry: {
-            coordinates: altPath1.map(([lat, lng]) => [lng, lat])
-          },
-          distance: primaryRoute.distance * 1.12,
-          duration: primaryRoute.duration * 1.15,
-          legs: [{ steps: altSteps1 }]
+        const primaryCoords = primaryRoute.geometry.coordinates; // [[lng, lat], ...]
+        const startPt = { lat: finalStartCoords.lat, lng: finalStartCoords.lng };
+        const endPt = { lat: finalEndCoords.lat, lng: finalEndCoords.lng };
+
+        const distMeters = distanceInMeters(startPt, endPt);
+        // Offset distance in degrees (~1.2km to ~3.5km perpendicular offset for long routes)
+        const offsetDist = Math.max(0.012, Math.min(0.035, (distMeters / 1000) * 0.0015));
+
+        const dLat = endPt.lat - startPt.lat;
+        const dLng = endPt.lng - startPt.lng;
+        const len = Math.hypot(dLat, dLng) || 1;
+        const pLat = -dLng / len;
+        const pLng = dLat / len;
+
+        // Via point A: 35% along path, offset to side A
+        const viaA = {
+          lat: startPt.lat + 0.35 * dLat + pLat * offsetDist,
+          lng: startPt.lng + 0.35 * dLng + pLng * offsetDist
         };
 
-        // Alternatif 2
-        const altPath2 = generateOffsetPath(primaryPath, -0.0008, 0.0015);
-        const altSteps2 = (primaryRoute.legs?.[0]?.steps || []).map((step, sIdx) => ({
-          ...step,
-          name: sIdx === 0 ? step.name : `Jalan Alternatif B`
-        }));
-        const altRoute2 = {
-          geometry: {
-            coordinates: altPath2.map(([lat, lng]) => [lng, lat])
-          },
-          distance: primaryRoute.distance * 1.24,
-          duration: primaryRoute.duration * 1.28,
-          legs: [{ steps: altSteps2 }]
+        // Via point B: 65% along path, offset to side B
+        const viaB = {
+          lat: startPt.lat + 0.65 * dLat - pLat * offsetDist,
+          lng: startPt.lng + 0.65 * dLng - pLng * offsetDist
         };
 
-        rawRoutes.push(altRoute1, altRoute2);
+        const viaPoints = [viaA, viaB];
+
+        for (let vIdx = 0; vIdx < viaPoints.length; vIdx++) {
+          if (rawRoutes.length >= 3) break;
+          const via = viaPoints[vIdx];
+          const altOSRM = await fetchRouteViaWaypoint(startPt, endPt, via.lat, via.lng, profile);
+
+          if (altOSRM && altOSRM.geometry?.coordinates?.length > 3) {
+            rawRoutes.push(altOSRM);
+          } else {
+            // Fallback: Generate smooth curved path detour from primary path
+            const primaryPath = primaryCoords.map(coord => [coord[1], coord[0]]); // [lat, lng]
+            const offsetKm = (vIdx === 0 ? 2.0 : -2.5) * Math.max(1, distMeters / 15000);
+            const curvedPath = generateCurvedDetour(primaryPath, offsetKm, vIdx === 0);
+
+            const altName = vIdx === 0 ? "Jalan Raya Utama (Jalur Timur)" : "Jalan Arterial (Jalur Barat)";
+            rawRoutes.push({
+              geometry: {
+                coordinates: curvedPath.map(([lat, lng]) => [lng, lat])
+              },
+              distance: primaryRoute.distance * (vIdx === 0 ? 1.09 : 1.16),
+              duration: primaryRoute.duration * (vIdx === 0 ? 1.11 : 1.18),
+              legs: [{
+                steps: [
+                  { name: altName, distance: distMeters * 0.85, maneuver: { type: "turn", modifier: "right" } }
+                ]
+              }]
+            });
+          }
+        }
       }
 
       const evaluated = await Promise.all(rawRoutes.slice(0, 3).map(async (route, index) => {
         const path = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        const majorRoads = extractMajorRoads(route);
         
         const samplePoints = [];
         if (path.length > 0) {
@@ -335,8 +556,8 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
         // turn-by-turn directions translation
         const steps = (route.legs?.[0]?.steps || []).map(step => {
-          const type = step.maneuver.type;
-          const modifier = step.maneuver.modifier;
+          const type = step.maneuver?.type;
+          const modifier = step.maneuver?.modifier;
           const name = step.name || "jalan tanpa nama";
           const distance = Math.round(step.distance);
 
@@ -362,7 +583,9 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
         return {
           id: index,
-          name: index === 0 ? "Rute Utama" : `Rute Alternatif ${index}`,
+          name: buildRouteName(majorRoads, index),
+          majorRoads,
+          routeColor: ROUTE_COLORS[index] || "#94a3b8",
           distance: route.distance,
           duration: route.duration,
           path,
@@ -386,21 +609,31 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   };
 
   const handleSosSent = () => {
+    sendSosToGuardian({ position, address: startPoint || "Stasiun Manggarai" });
     setShowSosOverlay(true);
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
-      description: "Lokasimu sudah dibagikan ke semua kontak darurat.",
+      description: "Lokasimu & peringatan darurat telah dikirim ke semua kontak Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
   };
 
   const handleToggleGuardian = () => {
+    const res = sendRouteToGuardian({
+      startPoint: startPoint || "Lokasi Dipilih",
+      endPoint: endPoint || "Tujuan Dipilih",
+      distanceText: distanceLabelText,
+      durationText: durationLabelText,
+      riskLevel: selectedRoute?.levelLabel || "Sangat Aman",
+      riskScore: selectedRoute?.score || 30,
+    });
+
     setIsSentToGuardian(true);
     setToast({
       tone: "success",
-      title: "Notifikasi terkirim kepada Live Guardian",
-      description: "Status perjalananmu kini dipantau secara langsung.",
+      title: `Notifikasi Terkirim ke ${res.contactName}`,
+      description: "Detail rute aman telah dibagikan di ruang chat Live Guardian.",
     });
 
     setTimeout(() => {
@@ -461,72 +694,124 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
               </button>
             </div>
 
-            <div
-              className={`safe-route-page__input-box ${
-                activeSelectMode === "start" ? "safe-route-page__input-box--active" : ""
-              }`}
-              onClick={() => setActiveSelectMode("start")}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
-                <div className="safe-route-page__input-icon--circle" />
-                <input
-                  type="text"
-                  className="safe-route-page__input"
-                  placeholder="Masukkan Titik Awal"
-                  value={startPoint}
-                  onChange={(e) => {
-                    setStartPoint(e.target.value);
-                    setStartCoords(null);
-                  }}
-                  onFocus={() => handleInputFocus("start")}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearchRoute()}
-                />
+            <div className="safe-route-page__input-wrapper" ref={startInputWrapperRef}>
+              <div
+                className={`safe-route-page__input-box ${
+                  activeSelectMode === "start" ? "safe-route-page__input-box--active" : ""
+                }`}
+                onClick={() => setActiveSelectMode("start")}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                  <div className="safe-route-page__input-icon--circle" />
+                  <input
+                    type="text"
+                    className="safe-route-page__input"
+                    placeholder="Masukkan Titik Awal"
+                    value={startPoint}
+                    onChange={(e) => handleStartInputChange(e.target.value)}
+                    onFocus={() => {
+                      handleInputFocus("start");
+                      if (startSuggestions.length > 0) setShowStartSuggestions(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setShowStartSuggestions(false);
+                        handleSearchRoute();
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                </div>
+                {!startPoint && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRequestGPS();
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#b01a5b",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      backgroundColor: "#fdeef4",
+                      flexShrink: 0
+                    }}
+                  >
+                    📍 Gunakan GPS
+                  </button>
+                )}
               </div>
-              {!startPoint && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRequestGPS();
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#b01a5b",
-                    fontSize: "11px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    padding: "4px 8px",
-                    borderRadius: "6px",
-                    backgroundColor: "#fdeef4",
-                    flexShrink: 0
-                  }}
-                >
-                  📍 Gunakan GPS
-                </button>
+              {showStartSuggestions && startSuggestions.length > 0 && (
+                <div className="safe-route-page__suggestions">
+                  {startSuggestions.map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="safe-route-page__suggestion-item"
+                      onClick={() => handleSelectStartSuggestion(s)}
+                    >
+                      <span className="safe-route-page__suggestion-icon">{getSuggestionIcon(s)}</span>
+                      <div className="safe-route-page__suggestion-text">
+                        <span className="safe-route-page__suggestion-name">{s.shortName}</span>
+                        <span className="safe-route-page__suggestion-detail">{s.name.split(",").slice(0, 3).join(",")}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
-            <div
-              className={`safe-route-page__input-box ${
-                activeSelectMode === "end" ? "safe-route-page__input-box--active" : ""
-              }`}
-              onClick={() => setActiveSelectMode("end")}
-            >
-              <MapPin size={18} color="#a81b58" style={{ flexShrink: 0 }} />
-              <input
-                type="text"
-                className="safe-route-page__input"
-                placeholder="Masukkan Titik Tujuan"
-                value={endPoint}
-                onChange={(e) => {
-                  setEndPoint(e.target.value);
-                  setEndCoords(null);
-                }}
-                onFocus={() => handleInputFocus("end")}
-                onKeyDown={(e) => e.key === "Enter" && handleSearchRoute()}
-              />
+            <div className="safe-route-page__input-wrapper" ref={endInputWrapperRef}>
+              <div
+                className={`safe-route-page__input-box ${
+                  activeSelectMode === "end" ? "safe-route-page__input-box--active" : ""
+                }`}
+                onClick={() => setActiveSelectMode("end")}
+              >
+                <MapPin size={18} color="#a81b58" style={{ flexShrink: 0 }} />
+                <input
+                  type="text"
+                  className="safe-route-page__input"
+                  placeholder="Masukkan Titik Tujuan"
+                  value={endPoint}
+                  onChange={(e) => handleEndInputChange(e.target.value)}
+                  onFocus={() => {
+                    handleInputFocus("end");
+                    if (endSuggestions.length > 0) setShowEndSuggestions(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setShowEndSuggestions(false);
+                      handleSearchRoute();
+                    }
+                  }}
+                  autoComplete="off"
+                />
+              </div>
+              {showEndSuggestions && endSuggestions.length > 0 && (
+                <div className="safe-route-page__suggestions">
+                  {endSuggestions.map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="safe-route-page__suggestion-item"
+                      onClick={() => handleSelectEndSuggestion(s)}
+                    >
+                      <span className="safe-route-page__suggestion-icon">{getSuggestionIcon(s)}</span>
+                      <div className="safe-route-page__suggestion-text">
+                        <span className="safe-route-page__suggestion-name">{s.shortName}</span>
+                        <span className="safe-route-page__suggestion-detail">{s.name.split(",").slice(0, 3).join(",")}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <button
@@ -568,21 +853,32 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               />
               {routesData.length > 0 ? (
-                routesData.map((route, idx) => {
-                  const isSelected = idx === selectedRouteIdx;
-                  return (
-                    <Polyline
-                      key={route.id}
-                      positions={route.path}
-                      color={isSelected ? "#b01a5b" : "#94a3b8"}
-                      weight={isSelected ? 6 : 4}
-                      opacity={isSelected ? 0.95 : 0.5}
-                      eventHandlers={{
-                        click: () => setSelectedRouteIdx(idx)
-                      }}
-                    />
-                  );
-                })
+                routesData
+                  .map((route, originalIdx) => ({ route, originalIdx }))
+                  .sort((a, b) => {
+                    // Selected route rendered LAST so its solid line is drawn on top
+                    if (a.originalIdx === selectedRouteIdx) return 1;
+                    if (b.originalIdx === selectedRouteIdx) return -1;
+                    return a.originalIdx - b.originalIdx;
+                  })
+                  .map(({ route, originalIdx }) => {
+                    const isSelected = originalIdx === selectedRouteIdx;
+                    return (
+                      <Polyline
+                        key={`${route.id}-${isSelected ? "active" : "inactive"}`}
+                        positions={route.path}
+                        pathOptions={{
+                          color: route.routeColor,
+                          weight: isSelected ? 8 : 4,
+                          opacity: isSelected ? 1.0 : 0.6,
+                          dashArray: isSelected ? undefined : "10 6",
+                        }}
+                        eventHandlers={{
+                          click: () => setSelectedRouteIdx(originalIdx)
+                        }}
+                      />
+                    );
+                  })
               ) : null}
               {startCoords && (
                 <Marker position={[startCoords.lat, startCoords.lng]} icon={startMarkerIcon}>
@@ -600,7 +896,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                 </Marker>
               ))}
               <MapRouteClickListener onSelectPoint={handleMapClick} />
-              {selectedRoute && <MapBoundsUpdater coords={selectedRoute.path} />}
+              {routesData.length > 0 && <MapBoundsUpdater routesData={routesData} />}
             </MapContainer>
 
             {showSosOverlay && (
@@ -632,26 +928,38 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                       style={{
                         padding: "12px 16px",
                         borderRadius: "14px",
-                        border: isSelected ? `2.5px solid ${route.levelColor}` : "1.5px solid #e2e8f0",
-                        background: isSelected ? `${route.levelColor}08` : "#ffffff",
+                        border: isSelected ? `2.5px solid ${route.routeColor}` : "1.5px solid #e2e8f0",
+                        background: isSelected ? `${route.routeColor}0D` : "#ffffff",
                         textAlign: "left",
                         cursor: "pointer",
-                        minWidth: "180px",
+                        minWidth: "210px",
                         flexShrink: 0,
                         transition: "all 0.2s",
-                        boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.04)" : "none"
+                        boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.06)" : "none"
                       }}
                     >
-                      <p style={{ margin: 0, fontSize: "12.5px", fontWeight: "700", color: isSelected ? route.levelColor : "#241422" }}>
-                        {route.name}
-                      </p>
-                      <p style={{ margin: "2px 0 0 0", fontSize: "13px", fontWeight: "800", color: "#6b5c66" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span style={{
+                          width: "14px", height: "4px", borderRadius: "2px",
+                          backgroundColor: route.routeColor, flexShrink: 0
+                        }} />
+                        <p style={{ margin: 0, fontSize: "12.5px", fontWeight: "700", color: isSelected ? route.routeColor : "#241422" }}>
+                          {idx === 0 ? "Rute Utama" : `Rute Alternatif ${idx}`}
+                        </p>
+                      </div>
+                      {route.majorRoads && route.majorRoads.length > 0 && (
+                        <p style={{ margin: "0 0 4px 22px", fontSize: "11px", fontWeight: "600", color: "#6b5c66", lineHeight: "1.3" }}>
+                          via {route.majorRoads.slice(0, 3).join(" → ")}
+                        </p>
+                      )}
+                      <p style={{ margin: "2px 0 0 22px", fontSize: "13px", fontWeight: "800", color: "#6b5c66" }}>
                         {distLabel} ({durMin} mnt)
                       </p>
                       <span
                         style={{
                           display: "inline-block",
                           marginTop: "8px",
+                          marginLeft: "22px",
                           fontSize: "10px",
                           fontWeight: "800",
                           color: "#ffffff",
