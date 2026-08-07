@@ -46,14 +46,17 @@ function MapRouteClickListener({ onSelectPoint }) {
   return null;
 }
 
-function MapBoundsUpdater({ coords }) {
+function MapBoundsUpdater({ routesData }) {
   const map = useMap();
   useEffect(() => {
-    if (coords && coords.length > 0) {
-      const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, { padding: [40, 40] });
+    if (routesData && routesData.length > 0) {
+      const allPoints = routesData.flatMap((r) => r.path);
+      if (allPoints.length > 0) {
+        const bounds = L.latLngBounds(allPoints);
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
     }
-  }, [coords, map]);
+  }, [routesData, map]);
   return null;
 }
 
@@ -855,8 +858,8 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                         positions={route.path}
                         color={route.routeColor}
                         weight={isSelected ? 7 : 4}
-                        opacity={isSelected ? 0.95 : 0.7}
-                        dashArray={isSelected ? undefined : "8 5"}
+                        opacity={isSelected ? 1.0 : 0.65}
+                        dashArray={isSelected ? null : "10 6"}
                         eventHandlers={{
                           click: () => setSelectedRouteIdx(originalIdx)
                         }}
@@ -880,7 +883,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                 </Marker>
               ))}
               <MapRouteClickListener onSelectPoint={handleMapClick} />
-              {selectedRoute && <MapBoundsUpdater coords={selectedRoute.path} />}
+              {routesData.length > 0 && <MapBoundsUpdater routesData={routesData} />}
             </MapContainer>
 
             {showSosOverlay && (
