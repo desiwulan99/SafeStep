@@ -201,10 +201,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [safePoints, setSafePoints] = useState([
-    { id: 1, lat: -6.2082, lng: 106.8465, name: "Pos Polisi Manggarai" },
-    { id: 2, lat: -6.2090, lng: 106.8475, name: "Minimarket 24 Jam" },
-  ]);
+  const [safePoints, setSafePoints] = useState([]);
 
   const mapCenter = position
     ? [position.lat, position.lng]
@@ -221,11 +218,10 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
     }
   }, [position, currentPlaceName]);
 
-  // Fetch safe points around start location
+  // Fetch real/dynamic safe points within 2km radius around start or current live location
   useEffect(() => {
-    const coords = position || startCoords;
-    if (!coords) return;
-    getNearbySafePoints({ lat: coords.lat, lng: coords.lng }).then((pts) => {
+    const coords = position || startCoords || { lat: -6.2088, lng: 106.8456 };
+    getNearbySafePoints({ lat: coords.lat, lng: coords.lng, radius: 2000 }).then((pts) => {
       if (pts && pts.length > 0) {
         setSafePoints(pts);
       }
