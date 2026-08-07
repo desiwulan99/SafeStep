@@ -854,12 +854,14 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                     const isSelected = originalIdx === selectedRouteIdx;
                     return (
                       <Polyline
-                        key={route.id}
+                        key={`${route.id}-${isSelected ? "active" : "inactive"}`}
                         positions={route.path}
-                        color={route.routeColor}
-                        weight={isSelected ? 7 : 4}
-                        opacity={isSelected ? 1.0 : 0.65}
-                        dashArray={isSelected ? null : "10 6"}
+                        pathOptions={{
+                          color: route.routeColor,
+                          weight: isSelected ? 8 : 4,
+                          opacity: isSelected ? 1.0 : 0.6,
+                          dashArray: isSelected ? undefined : "10 6",
+                        }}
                         eventHandlers={{
                           click: () => setSelectedRouteIdx(originalIdx)
                         }}
