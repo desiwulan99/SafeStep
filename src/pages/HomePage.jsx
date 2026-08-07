@@ -11,7 +11,8 @@ import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { getNearbySafePoints } from "../services/riskService";
-import mascotImg from "../assets/images/mascot.svg";
+import { sendSosToGuardian } from "../services/guardianService";
+import mascotImg from "../assets/images/mascot.png";
 import "./HomePage.css";
 
 const MOCK_ACTIVITY = [
@@ -28,15 +29,16 @@ export default function HomePage({ userName = "user", onNavigate }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    if (!position) return;
-    getNearbySafePoints({ lat: position.lat, lng: position.lng }).then(setSafePoints);
+    const coords = position || { lat: -6.2088, lng: 106.8456 };
+    getNearbySafePoints({ lat: coords.lat, lng: coords.lng }).then(setSafePoints);
   }, [position]);
 
   const handleSosSent = () => {
+    sendSosToGuardian({ position, address: placeName });
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
-      description: "Lokasimu sudah dibagikan ke semua kontak darurat.",
+      description: "Lokasimu & notifikasi darurat telah terkirim ke Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
   };

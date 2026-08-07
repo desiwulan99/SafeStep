@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   User,
   Check,
-  CheckCheck,
   MapPin,
   Battery,
   ArrowLeft,
@@ -13,6 +12,10 @@ import {
   Send,
   X,
   ShieldCheck,
+  Plus,
+  Phone,
+  MessageSquare,
+  ExternalLink,
   AlertTriangle,
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -25,6 +28,15 @@ import QuickCard from "../components/home/QuickCard";
 import Toast from "../components/common/Toast";
 import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
+import {
+  getGuardianContacts,
+  addGuardianContact,
+  getGuardianSession,
+  setGuardianSession,
+  getGuardianMessages,
+  sendGuardianMessage,
+  sendSosToGuardian,
+} from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.svg";
 import "./LiveGuardianPage.css";
 
@@ -40,62 +52,48 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
 
   // Navigation / View state: "list" | "chat" | "map"
   const [viewMode, setViewMode] = useState("list");
-  const [isActiveGuardian, setIsActiveGuardian] = useState(false);
-  const [activeContact, setActiveContact] = useState("Ibu");
+  const [session, setSessionState] = useState(getGuardianSession());
+  const [contacts, setContactsState] = useState(getGuardianContacts());
+  const [chatMessages, setChatMessages] = useState(getGuardianMessages());
+  const [activeContact, setActiveContact] = useState(session.activeContactName || "Ibu");
   const [inputText, setInputText] = useState("");
   const [toast, setToast] = useState(null);
   const [showSosModal, setShowSosModal] = useState(false);
 
-  // Real-time timer count state (starts at 204 seconds = 03:24)
+  // Modal for selecting a Guardian contact when activating
+  const [showSelectGuardianModal, setShowSelectGuardianModal] = useState(false);
+  const [showAddContactForm, setShowAddContactForm] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [newContactRelation, setNewContactRelation] = useState("Keluarga");
+
+  // Real-time timer count state
   const [activeSeconds, setActiveSeconds] = useState(204);
 
   // Invitation state for Anita
-  const [anitaInviteStatus, setAnitaInviteStatus] = useState("pending"); // "pending" | "accepted"
-
-  // Real chat messages state array per contact
-  const [chatMessages, setChatMessages] = useState({
-    Ibu: [
-      {
-        id: 1,
-        sender: "user",
-        text: "Memilih Ibu menjadi Live Guardian",
-        time: "14:20",
-        type: "invite",
-      },
-      {
-        id: 2,
-        sender: "Ibu",
-        text: "Ibu menjadi Live Guardian",
-        time: "14:20",
-        type: "accepted",
-      },
-      {
-        id: 3,
-        sender: "Ibu",
-        text: "Oke, nanti Ibu jemput di situ ya.",
-        time: "14:22",
-      },
-    ],
-    Anita: [
-      {
-        id: 1,
-        sender: "Anita",
-        text: "anita06 memilih Anda menjadi Live Guardian",
-        time: "14:20",
-        type: "invite_received",
-      },
-    ],
-    "Kak Inul": [
-      {
-        id: 1,
-        sender: "Kak Inul",
-        text: "Live Tracking Sent.",
-        time: "14:15",
-      },
-    ],
-  });
+  const [anitaInviteStatus, setAnitaInviteStatus] = useState("pending");
 
   const messagesEndRef = useRef(null);
+
+  // Sync state with guardianService and listen for updates
+  const syncStateFromService = () => {
+    const currentSession = getGuardianSession();
+    setSessionState(currentSession);
+    setContactsState(getGuardianContacts());
+    setChatMessages(getGuardianMessages());
+    if (currentSession.activeContactName) {
+      setActiveContact(currentSession.activeContactName);
+    }
+  };
+
+  useEffect(() => {
+    syncStateFromService();
+    const handleUpdate = () => syncStateFromService();
+    window.addEventListener("guardian_update", handleUpdate);
+    return () => window.removeEventListener("guardian_update", handleUpdate);
+  }, []);
+
+  const isActiveGuardian = session.isActive;
 
   // Incremental real-time timer
   useEffect(() => {
@@ -115,7 +113,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
     if (viewMode === "chat") {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages, viewMode]);
+  }, [chatMessages, viewMode, activeContact]);
 
   const formatTimer = (totalSec) => {
     const mins = Math.floor(totalSec / 60);
@@ -123,51 +121,55 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  const contacts = [
-    {
-      id: "ibu",
-      name: "Ibu",
-      lastMsg:
-        chatMessages.Ibu?.[chatMessages.Ibu.length - 1]?.text ||
-        "Oke, nanti Ibu jemput di situ ya.",
-      unread: 1,
-      isOnline: true,
-      hasWings: true,
-    },
-    {
-      id: "kak-inul",
-      name: "Kak Inul",
-      lastMsg: "Live Tracking Sent.",
-      unread: 0,
-      isOnline: false,
-      isTrackingSent: true,
-    },
-    {
-      id: "anita",
-      name: "Anita",
-      lastMsg:
-        chatMessages.Anita?.[chatMessages.Anita.length - 1]?.text ||
-        "anita06 memilih Anda menjadi Live Guardian",
-      unread: 3,
-      isOnline: true,
-    },
-  ];
-
   const handleSosSent = () => {
+    sendSosToGuardian({ position, address: "Stasiun Manggarai" });
     setShowSosModal(true);
   };
 
-  const handleToggleActivate = () => {
-    const nextState = !isActiveGuardian;
-    setIsActiveGuardian(nextState);
-    if (nextState) {
-      setToast({
-        tone: "success",
-        title: "Live Guardian Aktif",
-        description: "Status perjalananmu kini dipantau secara langsung.",
-      });
-      window.setTimeout(() => setToast(null), 5000);
-    }
+  // Open modal to select contact when clicking "Aktifkan?"
+  const handleOpenActivateModal = () => {
+    setShowSelectGuardianModal(true);
+  };
+
+  // Activate session with chosen contact
+  const handleSelectGuardian = (contactName) => {
+    setGuardianSession(contactName, true);
+    setActiveContact(contactName);
+    setShowSelectGuardianModal(false);
+
+    setToast({
+      tone: "success",
+      title: "Live Guardian Aktif",
+      description: `Status perjalananmu kini dipantau langsung oleh ${contactName}.`,
+    });
+    window.setTimeout(() => setToast(null), 5000);
+  };
+
+  // Deactivate Live Guardian session
+  const handleDeactivateSession = () => {
+    setGuardianSession(activeContact, false);
+    setToast({
+      tone: "info",
+      title: "Sesi Live Guardian Selesai",
+      description: "Pemantauan real-time telah dihentikan.",
+    });
+    window.setTimeout(() => setToast(null), 5000);
+  };
+
+  // Add new contact
+  const handleCreateContact = (e) => {
+    if (e) e.preventDefault();
+    if (!newContactName.trim()) return;
+
+    addGuardianContact({
+      name: newContactName.trim(),
+      phone: newContactPhone.trim(),
+      relation: newContactRelation,
+    });
+
+    setNewContactName("");
+    setNewContactPhone("");
+    setShowAddContactForm(false);
   };
 
   const handleOpenChat = (contactName) => {
@@ -177,22 +179,12 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
 
   const handleSendMessage = () => {
     if (!inputText.trim()) return;
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")}`;
 
-    const newMsg = {
-      id: Date.now(),
+    sendGuardianMessage(activeContact, {
       sender: "user",
       text: inputText.trim(),
-      time: timeStr,
-    };
-
-    setChatMessages((prev) => ({
-      ...prev,
-      [activeContact]: [...(prev[activeContact] || []), newMsg],
-    }));
+      type: "text",
+    });
 
     setInputText("");
   };
@@ -281,6 +273,127 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
             )}
           </div>
 
+          {/* SELECT GUARDIAN CONTACT MODAL */}
+          {showSelectGuardianModal && (
+            <div
+              className="guardian-page__modal-overlay"
+              onClick={() => setShowSelectGuardianModal(false)}
+            >
+              <div
+                className="guardian-page__select-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="guardian-page__select-modal-header">
+                  <h3 className="guardian-page__chat-title">Pilih Kontak Live Guardian</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowSelectGuardianModal(false)}
+                    style={{ background: "none", border: "none", cursor: "pointer" }}
+                  >
+                    <X size={18} color="#6b5c66" />
+                  </button>
+                </div>
+                <p className="guardian-page__select-modal-desc">
+                  Pilih kontak darurat yang akan memantau perjalananmu secara real-time:
+                </p>
+
+                <div className="guardian-page__select-contact-list">
+                  {contacts.map((c) => (
+                    <div key={c.id} className="guardian-page__select-contact-item">
+                      <div className="guardian-page__chat-avatar">
+                        <User size={20} />
+                      </div>
+                      <div className="guardian-page__select-contact-info">
+                        <div className="guardian-page__chat-name-row">
+                          <span className="guardian-page__chat-name">{c.name}</span>
+                          {c.relation && (
+                            <span className="guardian-page__relation-badge">{c.relation}</span>
+                          )}
+                        </div>
+                        <span className="guardian-page__chat-snippet">
+                          {c.phone || "Kontak Tersimpan"}
+                        </span>
+                      </div>
+                      <div className="guardian-page__select-actions">
+                        {c.phone && (
+                          <a
+                            href={`https://wa.me/${c.phone.replace(/^0/, "62")}?text=${encodeURIComponent(
+                              `Halo ${c.name}, saya mengaktifkan fitur Live Guardian SafeStep untuk memantau perjalanan saya.`
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="guardian-page__wa-btn"
+                            title="Kirim pesan WhatsApp ke nomor ini"
+                          >
+                            <Phone size={13} />
+                            <span>WA</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          className="guardian-page__activate-btn"
+                          style={{ padding: "6px 14px", fontSize: "12.5px" }}
+                          onClick={() => handleSelectGuardian(c.name)}
+                        >
+                          Pilih
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {!showAddContactForm ? (
+                  <button
+                    type="button"
+                    className="guardian-page__add-contact-btn"
+                    onClick={() => setShowAddContactForm(true)}
+                  >
+                    <Plus size={16} />
+                    <span>Tambah Kontak Baru</span>
+                  </button>
+                ) : (
+                  <form onSubmit={handleCreateContact} className="guardian-page__add-contact-form">
+                    <h4 style={{ margin: "0 0 8px 0", fontSize: "13.5px", color: "#b01a5b" }}>
+                      Tambah Kontak Guardian Baru
+                    </h4>
+                    <input
+                      type="text"
+                      placeholder="Nama Kontak (misal: Kakak, Sahabat)"
+                      value={newContactName}
+                      onChange={(e) => setNewContactName(e.target.value)}
+                      className="guardian-page__form-input"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Nomor HP / WhatsApp (misal: 08123456789)"
+                      value={newContactPhone}
+                      onChange={(e) => setNewContactPhone(e.target.value)}
+                      className="guardian-page__form-input"
+                    />
+                    <div className="guardian-page__form-btn-row">
+                      <button
+                        type="submit"
+                        className="guardian-page__activate-btn"
+                        style={{ padding: "8px 16px", fontSize: "12.5px" }}
+                      >
+                        Simpan & Gunakan
+                      </button>
+                      <button
+                        type="button"
+                        className="guardian-page__activate-btn guardian-page__activate-btn--active"
+                        style={{ padding: "8px 16px", fontSize: "12.5px" }}
+                        onClick={() => setShowAddContactForm(false)}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* VIEW MODE 1: MAIN LIST VIEW (Mockups 1 & 2) */}
           {viewMode === "list" && (
             <>
@@ -297,9 +410,9 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                     <button
                       type="button"
                       className="guardian-page__activate-btn"
-                      onClick={handleToggleActivate}
+                      onClick={handleOpenActivateModal}
                     >
-                      Aktifkan?
+                      Aktifkan & Pilih Guardian
                     </button>
                   </>
                 ) : (
@@ -311,13 +424,33 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                       <h3 className="guardian-page__name-lg">{activeContact}</h3>
                       <span className="guardian-page__online-badge">Online</span>
                     </div>
-                    <button
-                      type="button"
-                      className="guardian-page__activate-btn guardian-page__activate-btn--active"
-                      onClick={() => setViewMode("map")}
-                    >
-                      Periksa Lokasi
-                    </button>
+                    <p className="guardian-page__status-text">
+                      Live Guardian aktif memantau perjalanan Anda.
+                    </p>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+                      <button
+                        type="button"
+                        className="guardian-page__activate-btn"
+                        onClick={() => setViewMode("map")}
+                      >
+                        Periksa Lokasi
+                      </button>
+                      <button
+                        type="button"
+                        className="guardian-page__activate-btn guardian-page__activate-btn--active"
+                        onClick={handleOpenActivateModal}
+                      >
+                        Ganti Guardian
+                      </button>
+                      <button
+                        type="button"
+                        className="guardian-page__activate-btn"
+                        style={{ background: "#e33a57" }}
+                        onClick={handleDeactivateSession}
+                      >
+                        Akhiri Sesi
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
@@ -343,7 +476,9 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                         </div>
                         <span className="guardian-page__chat-snippet">
                           {c.isTrackingSent ? "🔵 " : ""}
-                          {c.lastMsg}
+                          {chatMessages[c.name]?.[chatMessages[c.name].length - 1]?.text ||
+                            c.lastMsg ||
+                            "Tidak ada pesan"}
                         </span>
                       </div>
 
@@ -404,6 +539,62 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                           <ShieldCheck size={16} />
                           <span>{m.text}</span>
                         </div>
+                        <span className="guardian-page__msg-time">{m.time}</span>
+                      </div>
+                    );
+                  }
+
+                  if (m.type === "route_share") {
+                    return (
+                      <div
+                        key={m.id}
+                        className="guardian-page__msg-bubble guardian-page__msg-bubble--sent"
+                        style={{ background: "#fdf0f4", border: "1.5px solid #f3b5d1", color: "#241422" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#b01a5b" }}>
+                          <MapPin size={16} />
+                          <span style={{ fontWeight: "700", fontSize: "13px" }}>Rute Aman Dibagikan</span>
+                        </div>
+                        <p className="guardian-page__msg-text" style={{ whiteSpace: "pre-line", margin: "6px 0", fontSize: "12.5px" }}>
+                          {m.text}
+                        </p>
+                        <button
+                          type="button"
+                          className="guardian-page__msg-btn"
+                          onClick={() => setViewMode("map")}
+                          style={{ background: "#b01a5b", color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                        >
+                          <span>Periksa Peta Real-time</span>
+                          <ExternalLink size={13} />
+                        </button>
+                        <span className="guardian-page__msg-time">{m.time}</span>
+                      </div>
+                    );
+                  }
+
+                  if (m.type === "sos_alert") {
+                    return (
+                      <div
+                        key={m.id}
+                        className="guardian-page__msg-bubble guardian-page__msg-bubble--sent"
+                        style={{ background: "#fdeceb", border: "1.5px solid #f8b4b4", color: "#b3261e" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#e33a57" }}>
+                          <AlertTriangle size={18} />
+                          <span style={{ fontWeight: "800", fontSize: "13px" }}>PERINGATAN SOS DARURAT</span>
+                        </div>
+                        <p className="guardian-page__msg-text" style={{ whiteSpace: "pre-line", margin: "6px 0", fontSize: "12.5px", color: "#b3261e" }}>
+                          {m.text}
+                        </p>
+                        <button
+                          type="button"
+                          className="guardian-page__msg-btn"
+                          style={{ background: "#e33a57", color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                          onClick={() => setViewMode("map")}
+                        >
+                          <span>Buka Lokasi SOS</span>
+                          <ExternalLink size={13} />
+                        </button>
                         <span className="guardian-page__msg-time">{m.time}</span>
                       </div>
                     );
@@ -547,8 +738,8 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                   style={{ width: "100%", height: "100%" }}
                 >
                   <TileLayer
-                    attribution='&copy; OpenStreetMap contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                   />
                   <Marker position={mapCenter} icon={avatarMarkerIcon}>
                     <Popup>📍 Lokasi Real-time: {activeContact}</Popup>

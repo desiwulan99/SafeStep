@@ -98,6 +98,98 @@
   background: transparent;
 }
 
+/* Autocomplete Wrapper & Suggestions */
+.safe-route-page__input-wrapper {
+  position: relative;
+}
+
+.safe-route-page__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 10px 30px -8px rgba(36, 20, 34, 0.18);
+  max-height: 280px;
+  overflow-y: auto;
+  animation: suggestions-slide-in 0.18s ease-out;
+}
+
+@keyframes suggestions-slide-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.safe-route-page__suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #f8f0f4;
+}
+
+.safe-route-page__suggestion-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 13px 13px;
+}
+
+.safe-route-page__suggestion-item:hover {
+  background: #fdf0f4;
+}
+
+.safe-route-page__suggestion-item:active {
+  background: #fce4ec;
+}
+
+.safe-route-page__suggestion-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdf0f4;
+  border-radius: 8px;
+}
+
+.safe-route-page__suggestion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.safe-route-page__suggestion-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #241422;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.safe-route-page__suggestion-detail {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8b7a84;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Mode Selection Pills */
 .safe-route-page__select-mode {
   display: flex;
@@ -195,13 +287,14 @@
 .safe-route-page__guidance {
   background: #f3b5d1;
   border-radius: 18px;
-  padding: 24px 20px;
+  padding: 0 20px;
+  min-height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 10px;
+  gap: 8px;
   box-shadow: 0 4px 18px -8px rgba(168, 27, 88, 0.2);
 }
 
@@ -209,7 +302,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   font-size: 28px;
   font-weight: 800;
   color: #ffffff;
