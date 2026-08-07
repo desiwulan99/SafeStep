@@ -13,6 +13,7 @@ import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { reverseGeocode, distanceInMeters, geocode, geocodeSearch } from "../services/locationService";
 import { getNearbySafePoints, getSafetyRiskScore } from "../services/riskService";
+import { sendRouteToGuardian, sendSosToGuardian } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.svg";
 import "./SafeRoutePage.css";
 
@@ -608,21 +609,31 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   };
 
   const handleSosSent = () => {
+    sendSosToGuardian({ position, address: startPoint || "Stasiun Manggarai" });
     setShowSosOverlay(true);
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
-      description: "Lokasimu sudah dibagikan ke semua kontak darurat.",
+      description: "Lokasimu & peringatan darurat telah dikirim ke semua kontak Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
   };
 
   const handleToggleGuardian = () => {
+    const res = sendRouteToGuardian({
+      startPoint: startPoint || "Lokasi Dipilih",
+      endPoint: endPoint || "Tujuan Dipilih",
+      distanceText: distanceLabelText,
+      durationText: durationLabelText,
+      riskLevel: selectedRoute?.levelLabel || "Sangat Aman",
+      riskScore: selectedRoute?.score || 30,
+    });
+
     setIsSentToGuardian(true);
     setToast({
       tone: "success",
-      title: "Notifikasi terkirim kepada Live Guardian",
-      description: "Status perjalananmu kini dipantau secara langsung.",
+      title: `Notifikasi Terkirim ke ${res.contactName}`,
+      description: "Detail rute aman telah dibagikan di ruang chat Live Guardian.",
     });
 
     setTimeout(() => {
