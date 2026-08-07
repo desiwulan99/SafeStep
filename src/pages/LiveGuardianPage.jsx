@@ -54,6 +54,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
 
   // Navigation / View state: "list" | "chat" | "map"
   const [viewMode, setViewMode] = useState("list");
+  const [mapTargetSubject, setMapTargetSubject] = useState("user"); // "user" | "contact"
   const [session, setSessionState] = useState(getGuardianSession());
   const [contacts, setContactsState] = useState(getGuardianContacts());
   const [chatMessages, setChatMessages] = useState(getGuardianMessages());
@@ -259,6 +260,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                     setShowSosModal(false);
                     setActiveContact("Anita");
                     setIsActiveGuardian(true);
+                    setMapTargetSubject("contact");
                     setViewMode("map");
                   }}
                 >
@@ -433,7 +435,10 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                       <button
                         type="button"
                         className="guardian-page__activate-btn"
-                        onClick={() => setViewMode("map")}
+                        onClick={() => {
+                          setMapTargetSubject("user");
+                          setViewMode("map");
+                        }}
                       >
                         Periksa Lokasi
                       </button>
@@ -477,7 +482,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                           {c.hasWings && <ShieldCheck size={16} color="#a81b58" />}
                         </div>
                         <span className="guardian-page__chat-snippet">
-                          {c.isTrackingSent ? "🔵 " : ""}
+                          {c.isTrackingSent ? <Navigation size={12} color="#2563eb" style={{ display: "inline-flex", verticalAlign: "middle", marginRight: "4px" }} /> : ""}
                           {chatMessages[c.name]?.[chatMessages[c.name].length - 1]?.text ||
                             c.lastMsg ||
                             "Tidak ada pesan"}
@@ -520,7 +525,13 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
 
               {/* Sub-header Banner */}
               <div className="guardian-page__room-sub-banner">
-                <span>
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setMapTargetSubject(activeContact === "Anita" ? "contact" : "user");
+                    setViewMode("map");
+                  }}
+                >
                   {activeContact === "Anita"
                     ? "Periksa lokasi Anita"
                     : "Live Guardian sedang aktif"}
@@ -563,7 +574,10 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                         <button
                           type="button"
                           className="guardian-page__msg-btn"
-                          onClick={() => setViewMode("map")}
+                          onClick={() => {
+                            setMapTargetSubject("user");
+                            setViewMode("map");
+                          }}
                           style={{ background: "#b01a5b", color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px" }}
                         >
                           <span>Periksa Peta Real-time</span>
@@ -592,7 +606,10 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                           type="button"
                           className="guardian-page__msg-btn"
                           style={{ background: "#e33a57", color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                          onClick={() => setViewMode("map")}
+                          onClick={() => {
+                            setMapTargetSubject(m.sender === "user" ? "user" : "contact");
+                            setViewMode("map");
+                          }}
                         >
                           <span>Buka Lokasi SOS</span>
                           <ExternalLink size={13} />
@@ -654,7 +671,10 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                             </div>
                             <button
                               className="guardian-page__msg-btn guardian-page__msg-btn--outline"
-                              onClick={() => setViewMode("map")}
+                              onClick={() => {
+                                setMapTargetSubject("contact");
+                                setViewMode("map");
+                              }}
                               style={{
                                 background: "#ffffff",
                                 color: "#a81b58",
@@ -721,13 +741,17 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
 
           {/* VIEW MODE 3: LIVE MAP TRACKING VIEW (Mockup 5) */}
           {viewMode === "map" && (() => {
-            const isUserBeingTracked = isActiveGuardian && activeContact !== "Anita";
+            const isUserBeingTracked = mapTargetSubject === "user";
             const trackedDisplayName = isUserBeingTracked
               ? `Anda (Dipantau oleh ${activeContact})`
               : activeContact;
             const trackedAddressLabel = isUserBeingTracked
               ? (userPlaceName || "Stasiun Manggarai, Jakarta Pusat")
               : (activeContact === "Anita" ? "Stasiun Manggarai, Pintu Barat" : (userPlaceName || "Lokasi Dipantau"));
+
+            const targetMapCenter = isUserBeingTracked
+              ? (position ? [position.lat, position.lng] : [-6.2088, 106.8456])
+              : [-6.2098, 106.8482];
 
             return (
               <>
@@ -743,7 +767,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                   </button>
 
                   <MapContainer
-                    center={mapCenter}
+                    center={targetMapCenter}
                     zoom={16}
                     scrollWheelZoom={false}
                     style={{ width: "100%", height: "100%" }}
@@ -752,8 +776,8 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                       url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     />
-                    <Marker position={mapCenter} icon={avatarMarkerIcon}>
-                      <Popup>📍 Lokasi Real-time: {trackedDisplayName}</Popup>
+                    <Marker position={targetMapCenter} icon={avatarMarkerIcon}>
+                      <Popup>Lokasi Real-time: {trackedDisplayName}</Popup>
                     </Marker>
                   </MapContainer>
                 </div>

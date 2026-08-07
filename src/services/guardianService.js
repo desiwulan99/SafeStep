@@ -134,7 +134,7 @@ export function sendRouteToGuardian({ startPoint, endPoint, distanceText, durati
   const session = getGuardianSession();
   const contactName = session.activeContactName || "Ibu";
 
-  const text = `📍 Berbagi Rute Aman:\n• Titik Awal: ${startPoint || "Lokasi Dipilih"}\n• Tujuan: ${endPoint || "Tujuan Dipilih"}\n• Jarak/Waktu: ${distanceText || ""} ${durationText ? `(${durationText})` : ""}\n• Status Risiko: ${riskLevel || "Aman"} (${riskScore ? Math.round(riskScore) : 30}/100)`;
+  const text = `Berbagi Rute Aman:\n• Titik Awal: ${startPoint || "Lokasi Dipilih"}\n• Tujuan: ${endPoint || "Tujuan Dipilih"}\n• Jarak/Waktu: ${distanceText || ""} ${durationText ? `(${durationText})` : ""}\n• Status Risiko: ${riskLevel || "Aman"} (${riskScore ? Math.round(riskScore) : 30}/100)`;
 
   sendGuardianMessage(contactName, {
     sender: "user",
@@ -153,7 +153,7 @@ export function sendSosToGuardian({ position, address }) {
   const latLngStr = position ? `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}` : "Lokasi Aktif";
   const locStr = address || latLngStr;
 
-  const text = `🚨 SOS DARURAT! Saya membutuhkan pertolongan segera di lokasi real-time: ${locStr}. Peta: https://maps.google.com/?q=${position?.lat || -6.2088},${position?.lng || 106.8456}`;
+  const text = `SOS DARURAT! Saya membutuhkan pertolongan segera di lokasi real-time: ${locStr}. Peta: https://maps.google.com/?q=${position?.lat || -6.2088},${position?.lng || 106.8456}`;
 
   contacts.forEach(c => {
     sendGuardianMessage(c.name, {

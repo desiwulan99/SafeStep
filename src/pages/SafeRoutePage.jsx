@@ -1,5 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, ArrowRight, HeartHandshake, Map as MapIcon } from "lucide-react";
+import {
+  MapPin,
+  ArrowRight,
+  HeartHandshake,
+  Map as MapIcon,
+  Building2,
+  Building,
+  Cross,
+  ShoppingBag,
+  Landmark,
+  Navigation,
+  Train,
+  Home,
+  Compass,
+} from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,12 +22,13 @@ import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 import QuickCard from "../components/home/QuickCard";
 import Toast from "../components/common/Toast";
+import SelectGuardianModal from "../components/common/SelectGuardianModal";
 import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { reverseGeocode, distanceInMeters, geocode, geocodeSearch } from "../services/locationService";
 import { getNearbySafePoints, getSafetyRiskScore } from "../services/riskService";
-import { sendRouteToGuardian, sendSosToGuardian } from "../services/guardianService";
+import { sendRouteToGuardian, sendSosToGuardian, getGuardianSession } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.svg";
 import "./SafeRoutePage.css";
 
@@ -326,19 +341,31 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // State for Select Guardian modal when session is inactive
+  const [showSelectModal, setShowSelectModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
   // Helper to get icon based on place type/category
   const getSuggestionIcon = (suggestion) => {
     const cat = suggestion.category;
     const type = suggestion.type;
-    if (cat === "amenity" || type === "university" || type === "school" || type === "college") return "🏫";
-    if (cat === "building" || type === "apartments" || type === "residential") return "🏢";
-    if (type === "hospital" || type === "clinic" || type === "doctors") return "🏥";
-    if (type === "mall" || type === "supermarket" || type === "marketplace") return "🛒";
-    if (cat === "tourism" || cat === "historic" || type === "museum") return "🏛️";
-    if (cat === "highway" || type === "road" || type === "street") return "🛣️";
-    if (cat === "railway" || type === "station" || type === "halt") return "🚉";
-    if (cat === "place" || type === "city" || type === "town" || type === "village") return "🏘️";
-    return "📍";
+    if (cat === "amenity" || type === "university" || type === "school" || type === "college")
+      return <Building2 size={16} color="#a81b58" />;
+    if (cat === "building" || type === "apartments" || type === "residential")
+      return <Building size={16} color="#a81b58" />;
+    if (type === "hospital" || type === "clinic" || type === "doctors")
+      return <Cross size={16} color="#e33a57" />;
+    if (type === "mall" || type === "supermarket" || type === "marketplace")
+      return <ShoppingBag size={16} color="#a81b58" />;
+    if (cat === "tourism" || cat === "historic" || type === "museum")
+      return <Landmark size={16} color="#a81b58" />;
+    if (cat === "highway" || type === "road" || type === "street")
+      return <Navigation size={16} color="#a81b58" />;
+    if (cat === "railway" || type === "station" || type === "halt")
+      return <Train size={16} color="#a81b58" />;
+    if (cat === "place" || type === "city" || type === "town" || type === "village")
+      return <Home size={16} color="#a81b58" />;
+    return <MapPin size={16} color="#a81b58" />;
   };
 
   const handleMapClick = async (clickedCoords) => {
@@ -609,17 +636,30 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   };
 
   const handleSosSent = () => {
+    const session = getGuardianSession();
+    if (!session.isActive) {
+      setPendingAction("sos");
+      setShowSelectModal(true);
+      return;
+    }
     sendSosToGuardian({ position, address: startPoint || "Stasiun Manggarai" });
     setShowSosOverlay(true);
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
-      description: "Lokasimu & peringatan darurat telah dikirim ke semua kontak Live Guardian.",
+      description: "Lokasimu & peringatan darurat telah dikirim ke Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
   };
 
   const handleToggleGuardian = () => {
+    const session = getGuardianSession();
+    if (!session.isActive) {
+      setPendingAction("route");
+      setShowSelectModal(true);
+      return;
+    }
+
     const res = sendRouteToGuardian({
       startPoint: startPoint || "Lokasi Dipilih",
       endPoint: endPoint || "Tujuan Dipilih",
@@ -641,6 +681,39 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
     }, 3000);
 
     window.setTimeout(() => setToast(null), 5000);
+  };
+
+  const handleSelectGuardianFromModal = (contactName) => {
+    if (pendingAction === "route") {
+      sendRouteToGuardian({
+        startPoint: startPoint || "Lokasi Dipilih",
+        endPoint: endPoint || "Tujuan Dipilih",
+        distanceText: distanceLabelText,
+        durationText: durationLabelText,
+        riskLevel: selectedRoute?.levelLabel || "Sangat Aman",
+        riskScore: selectedRoute?.score || 30,
+      });
+
+      setIsSentToGuardian(true);
+      setToast({
+        tone: "success",
+        title: `Live Guardian Aktif & Terkirim ke ${contactName}`,
+        description: "Detail rute aman telah dibagikan di ruang chat Live Guardian.",
+      });
+
+      setTimeout(() => {
+        setIsSentToGuardian(false);
+      }, 3000);
+    } else if (pendingAction === "sos") {
+      sendSosToGuardian({ position, address: startPoint || "Stasiun Manggarai" });
+      setShowSosOverlay(true);
+      setToast({
+        tone: "success",
+        title: `SOS Dikirim ke ${contactName}`,
+        description: "Lokasimu & notifikasi darurat telah terkirim ke Live Guardian.",
+      });
+    }
+    setPendingAction(null);
   };
 
   // Selected route bindings for UI
@@ -743,7 +816,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                       flexShrink: 0
                     }}
                   >
-                    📍 Gunakan GPS
+                    <Compass size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Gunakan GPS
                   </button>
                 )}
               </div>
@@ -1109,6 +1182,21 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
           )}
         </aside>
       </div>
+
+      <SelectGuardianModal
+        isOpen={showSelectModal}
+        onClose={() => {
+          setShowSelectModal(false);
+          setPendingAction(null);
+        }}
+        title={pendingAction === "sos" ? "Pilih Guardian untuk Pengiriman SOS" : "Pilih Guardian untuk Berbagi Rute"}
+        description={
+          pendingAction === "sos"
+            ? "Anda belum mengaktifkan Live Guardian. Pilih kontak darurat yang ingin Anda kirimi pesan SOS & lokasi real-time:"
+            : "Anda belum mengaktifkan Live Guardian. Pilih kontak darurat yang ingin Anda kirimi rute perjalanan aman ini:"
+        }
+        onSelect={handleSelectGuardianFromModal}
+      />
     </div>
   );
 }

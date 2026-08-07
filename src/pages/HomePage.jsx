@@ -11,7 +11,8 @@ import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { getNearbySafePoints } from "../services/riskService";
-import { sendSosToGuardian } from "../services/guardianService";
+import SelectGuardianModal from "../components/common/SelectGuardianModal";
+import { sendSosToGuardian, getGuardianSession } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.png";
 import "./HomePage.css";
 
@@ -27,6 +28,7 @@ export default function HomePage({ userName = "user", onNavigate }) {
 
   const [safePoints, setSafePoints] = useState([]);
   const [toast, setToast] = useState(null);
+  const [showSelectModal, setShowSelectModal] = useState(false);
 
   useEffect(() => {
     const coords = position || { lat: -6.2088, lng: 106.8456 };
@@ -34,10 +36,25 @@ export default function HomePage({ userName = "user", onNavigate }) {
   }, [position]);
 
   const handleSosSent = () => {
+    const session = getGuardianSession();
+    if (!session.isActive) {
+      setShowSelectModal(true);
+      return;
+    }
     sendSosToGuardian({ position, address: placeName });
     setToast({
       tone: "success",
       title: "SOS Berhasil Dikirim!",
+      description: "Lokasimu & notifikasi darurat telah terkirim ke Live Guardian.",
+    });
+    window.setTimeout(() => setToast(null), 5000);
+  };
+
+  const handleSelectGuardianFromModal = (contactName) => {
+    sendSosToGuardian({ position, address: placeName });
+    setToast({
+      tone: "success",
+      title: `SOS Dikirim ke ${contactName}`,
       description: "Lokasimu & notifikasi darurat telah terkirim ke Live Guardian.",
     });
     window.setTimeout(() => setToast(null), 5000);
@@ -96,6 +113,14 @@ export default function HomePage({ userName = "user", onNavigate }) {
           </div>
         </aside>
       </div>
+
+      <SelectGuardianModal
+        isOpen={showSelectModal}
+        onClose={() => setShowSelectModal(false)}
+        title="Pilih Guardian untuk Pengiriman SOS"
+        description="Anda belum mengaktifkan Live Guardian. Pilih kontak darurat yang ingin Anda kirimi pesan SOS & lokasi real-time:"
+        onSelect={handleSelectGuardianFromModal}
+      />
     </div>
   );
 }
