@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Heart, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { useSosTrigger } from "../hooks/userSosTrigger";
+import sosButtonImg from "../../../assets/images/sos-button.svg";
 import "./SosButton.css";
 
 export default function SosButton({ position, userId, onSent }) {
@@ -57,14 +58,18 @@ export default function SosButton({ position, userId, onSent }) {
             }}
           />
         </svg>
-        <span className="sos-btn__icon" aria-hidden="true">
-          {phase === "sent" ? (
-            <Check size={26} strokeWidth={3} />
-          ) : (
-            <Heart size={24} strokeWidth={2.4} fill={phase === "holding" ? "currentColor" : "none"} />
-          )}
-        </span>
-        <span className="sos-btn__label">{label}</span>
+        {phase === "sent" ? (
+          <>
+            <span className="sos-btn__icon" aria-hidden="true">
+              <Check size={26} strokeWidth={3} />
+            </span>
+            <span className="sos-btn__label">{label}</span>
+          </>
+        ) : phase === "sending" ? (
+          <span className="sos-btn__label">{label}</span>
+        ) : (
+          <img src={sosButtonImg} alt="SOS Button" className="sos-btn__svg" />
+        )}
       </button>
       <p className="sos-hint">Klik atau tahan tombol untuk memicu SOS</p>
       {errorMessage && <p className="sos-hint sos-hint--error">{errorMessage}</p>}

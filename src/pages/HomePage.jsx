@@ -21,7 +21,7 @@ const MOCK_ACTIVITY = [
   { id: 3, type: "guardian", title: "Live Guardian dengan Kak Dinda selesai", time: "2 hari lalu" },
 ];
 
-export default function HomePage({ userName = "user" }) {
+export default function HomePage({ userName = "user", onNavigate }) {
   const { position, status: geoStatus } = useGeolocation();
   const { placeName } = useReverseGeocode(position);
 
@@ -29,8 +29,8 @@ export default function HomePage({ userName = "user" }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    if (!position) return;
-    getNearbySafePoints({ lat: position.lat, lng: position.lng }).then(setSafePoints);
+    const coords = position || { lat: -6.2088, lng: 106.8456 };
+    getNearbySafePoints({ lat: coords.lat, lng: coords.lng }).then(setSafePoints);
   }, [position]);
 
   const handleSosSent = () => {
@@ -54,7 +54,7 @@ export default function HomePage({ userName = "user" }) {
       )}
 
       <div className="home-page__body">
-        <Sidebar activeKey="home" />
+        <Sidebar activeKey="home" onNavigate={onNavigate} />
 
         <main className="home-page__main">
           <MapSection
@@ -65,7 +65,7 @@ export default function HomePage({ userName = "user" }) {
             geoStatus={geoStatus}
           />
 
-          <ReportBanner onReport={() => console.log("navigate: anonymous report")} />
+          <ReportBanner onReport={() => onNavigate?.({ key: "report" })} />
 
           <RecentActivity items={MOCK_ACTIVITY} />
         </main>
@@ -82,7 +82,7 @@ export default function HomePage({ userName = "user" }) {
               description="Bagikan lokasi real-time-mu dengan kontak tepercaya!"
               actionLabel="Mulai sesi"
               icon={<img src={mascotImg} alt="Maskot SafeStep" />}
-              onClick={() => console.log("navigate: live guardian")}
+              onClick={() => onNavigate?.({ key: "live-guardian" })}
             />
 
             <QuickCard
@@ -91,7 +91,7 @@ export default function HomePage({ userName = "user" }) {
               description="Lihat titik perlindungan dalam radius 2 km dari lokasimu."
               actionLabel="Lihat peta"
               icon={<MapIcon size={30} strokeWidth={1.8} color="#B01A5B" />}
-              onClick={() => console.log("navigate: safe route")}
+              onClick={() => onNavigate?.({ key: "safe-route" })}
             />
           </div>
         </aside>

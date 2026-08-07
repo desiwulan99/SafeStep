@@ -23,8 +23,11 @@ export default function MapWidget({
   safePoints = [],
   placeName,
   height = 320,
+  geoStatus = "idle",
 }) {
-  if (!center) {
+  const isLocating = geoStatus === "locating" || (geoStatus === "idle" && !center);
+
+  if (isLocating) {
     return (
       <div className="map-widget map-widget--loading" style={{ height }}>
         <div className="map-widget__spinner" />
@@ -33,22 +36,28 @@ export default function MapWidget({
     );
   }
 
+  const defaultCenter = { lat: -6.2088, lng: 106.8456 }; // Jakarta center
+  const displayCenter = center || defaultCenter;
+
   return (
     <div className="map-widget" style={{ height }}>
       <MapContainer
-        center={[center.lat, center.lng]}
+        key={`${displayCenter.lat}-${displayCenter.lng}`}
+        center={[displayCenter.lat, displayCenter.lng]}
         zoom={zoom}
         scrollWheelZoom={false}
         className="map-widget__map"
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <Marker position={[center.lat, center.lng]} icon={userIcon}>
-          <Popup>{placeName || "Lokasi kamu saat ini"}</Popup>
-        </Marker>
-        {center.accuracy && (
+        {center && (
+          <Marker position={[center.lat, center.lng]} icon={userIcon}>
+            <Popup>{placeName || "Lokasi kamu saat ini"}</Popup>
+          </Marker>
+        )}
+        {center && center.accuracy && (
           <Circle
             center={[center.lat, center.lng]}
             radius={center.accuracy}
