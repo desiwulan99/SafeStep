@@ -477,7 +477,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                           {c.hasWings && <ShieldCheck size={16} color="#a81b58" />}
                         </div>
                         <span className="guardian-page__chat-snippet">
-                          {c.isTrackingSent ? "🔵 " : ""}
+                          {c.isTrackingSent ? <Navigation size={12} color="#2563eb" style={{ display: "inline-flex", verticalAlign: "middle", marginRight: "4px" }} /> : ""}
                           {chatMessages[c.name]?.[chatMessages[c.name].length - 1]?.text ||
                             c.lastMsg ||
                             "Tidak ada pesan"}
@@ -753,7 +753,7 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                       url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     />
                     <Marker position={mapCenter} icon={avatarMarkerIcon}>
-                      <Popup>📍 Lokasi Real-time: {trackedDisplayName}</Popup>
+                      <Popup>Lokasi Real-time: {trackedDisplayName}</Popup>
                     </Marker>
                   </MapContainer>
                 </div>
