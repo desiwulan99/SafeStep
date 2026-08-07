@@ -985,10 +985,10 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
           {/* Perbandingan Rute Alternatif */}
           {routesData.length > 0 && (
             <div className="safe-route-page__alternatives">
-              <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#241422", margin: "14px 0 8px 0" }}>
+              <h3 className="safe-route-page__alternatives-title">
                 Pilih Alternatif Rute
               </h3>
-              <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "6px" }}>
+              <div className="safe-route-page__alternatives-grid">
                 {routesData.map((route, idx) => {
                   const isSelected = idx === selectedRouteIdx;
                   const distLabel = route.distance < 1000 ? `${Math.round(route.distance)} m` : `${(route.distance / 1000).toFixed(1)} km`;
@@ -998,51 +998,41 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                       key={route.id}
                       type="button"
                       onClick={() => setSelectedRouteIdx(idx)}
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "14px",
-                        border: isSelected ? `2.5px solid ${route.routeColor}` : "1.5px solid #e2e8f0",
-                        background: isSelected ? `${route.routeColor}0D` : "#ffffff",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        minWidth: "210px",
-                        flexShrink: 0,
-                        transition: "all 0.2s",
-                        boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.06)" : "none"
-                      }}
+                      className={`safe-route-page__route-card ${isSelected ? "safe-route-page__route-card--selected" : ""}`}
+                      style={{ "--route-color": route.routeColor }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <span style={{
-                          width: "14px", height: "4px", borderRadius: "2px",
-                          backgroundColor: route.routeColor, flexShrink: 0
-                        }} />
-                        <p style={{ margin: 0, fontSize: "12.5px", fontWeight: "700", color: isSelected ? route.routeColor : "#241422" }}>
+                      <div className="safe-route-page__route-card-header">
+                        <span
+                          className="safe-route-page__route-card-indicator"
+                          style={{ backgroundColor: route.routeColor }}
+                        />
+                        <span className="safe-route-page__route-card-title">
                           {idx === 0 ? "Rute Utama" : `Rute Alternatif ${idx}`}
-                        </p>
+                        </span>
+                        {isSelected && (
+                          <span className="safe-route-page__route-card-check">
+                            <Check size={13} />
+                          </span>
+                        )}
                       </div>
+
                       {route.majorRoads && route.majorRoads.length > 0 && (
-                        <p style={{ margin: "0 0 4px 22px", fontSize: "11px", fontWeight: "600", color: "#6b5c66", lineHeight: "1.3" }}>
+                        <p className="safe-route-page__route-card-via">
                           via {route.majorRoads.slice(0, 3).join(" → ")}
                         </p>
                       )}
-                      <p style={{ margin: "2px 0 0 22px", fontSize: "13px", fontWeight: "800", color: "#6b5c66" }}>
-                        {distLabel} ({durMin} mnt)
-                      </p>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          marginTop: "8px",
-                          marginLeft: "22px",
-                          fontSize: "10px",
-                          fontWeight: "800",
-                          color: "#ffffff",
-                          backgroundColor: route.levelColor,
-                          padding: "2px 8px",
-                          borderRadius: "6px"
-                        }}
-                      >
-                        {route.levelLabel}
-                      </span>
+
+                      <div className="safe-route-page__route-card-footer">
+                        <span className="safe-route-page__route-card-stats">
+                          {distLabel} • {durMin} mnt
+                        </span>
+                        <span
+                          className="safe-route-page__route-card-badge"
+                          style={{ backgroundColor: route.levelColor }}
+                        >
+                          {route.levelLabel}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}

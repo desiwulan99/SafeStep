@@ -74,22 +74,25 @@ export default function SelectGuardianModal({
         <div className="select-guardian-modal__list">
           {contacts.map((c) => (
             <div key={c.id} className="select-guardian-modal__item">
-              <div className="select-guardian-modal__avatar">
-                <User size={20} />
-              </div>
-              <div className="select-guardian-modal__info">
-                <div className="select-guardian-modal__name-row">
-                  <span className="select-guardian-modal__name">{c.name}</span>
-                  {c.relation && (
-                    <span className="select-guardian-modal__badge">
-                      {c.relation}
-                    </span>
-                  )}
+              <div className="select-guardian-modal__top-row">
+                <div className="select-guardian-modal__avatar">
+                  <User size={20} />
                 </div>
-                <span className="select-guardian-modal__phone">
-                  {c.phone || "Kontak Tersimpan"}
-                </span>
+                <div className="select-guardian-modal__info">
+                  <div className="select-guardian-modal__name-row">
+                    <span className="select-guardian-modal__name">{c.name}</span>
+                    {c.relation && (
+                      <span className="select-guardian-modal__badge">
+                        {c.relation}
+                      </span>
+                    )}
+                  </div>
+                  <span className="select-guardian-modal__phone">
+                    {c.phone || "Kontak Tersimpan"}
+                  </span>
+                </div>
               </div>
+
               <div className="select-guardian-modal__actions">
                 {c.phone && (
                   <a
