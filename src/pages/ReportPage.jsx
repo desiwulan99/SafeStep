@@ -9,6 +9,9 @@ import {
   Clock,
   Navigation,
   Info,
+  History,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -26,6 +29,31 @@ const incidentPinIcon = L.divIcon({
   iconSize: [22, 22],
   iconAnchor: [11, 11],
 });
+
+const INITIAL_HISTORY = [
+  {
+    id: 1,
+    category: "Catcalling",
+    description: "Terdapat sekelompok orang melakukan pelecehan verbal saat melewati gang area stasiun.",
+    locationAddress: "Stasiun Manggarai, Pintu Barat",
+    dateVal: "2026-08-05",
+    timeVal: "21:15",
+    status: "Terverifikasi",
+    statusTone: "success",
+    hasProof: true,
+  },
+  {
+    id: 2,
+    category: "Mengikuti",
+    description: "Individu mencurigakan berjalan mengikuti dari halte busway hingga area pemukiman sepi.",
+    locationAddress: "Jl. Sultan Agung No. 12",
+    dateVal: "2026-08-02",
+    timeVal: "19:40",
+    status: "Dalam Proses",
+    statusTone: "warning",
+    hasProof: false,
+  },
+];
 
 function MapClickListener({ onSelectLocation }) {
   useMapEvents({
@@ -49,6 +77,7 @@ export default function ReportPage({ userName = "user", onNavigate }) {
   const [toast, setToast] = useState(null);
   const [validationError, setValidationError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [historyList, setHistoryList] = useState(INITIAL_HISTORY);
 
   const clearFieldError = (field) => {
     setFieldErrors((prev) => ({ ...prev, [field]: false }));
@@ -114,6 +143,24 @@ export default function ReportPage({ userName = "user", onNavigate }) {
 
     setTimeout(() => {
       setIsSubmitting(false);
+
+      const finalCategory =
+        category === "Lainnya" && customCategory.trim() ? customCategory.trim() : category;
+
+      const newHistoryItem = {
+        id: Date.now(),
+        category: finalCategory,
+        description: description.trim(),
+        locationAddress: locationAddress.trim(),
+        dateVal,
+        timeVal,
+        status: "Diterima",
+        statusTone: "info",
+        hasProof: !!proofFile,
+      };
+
+      setHistoryList((prev) => [newHistoryItem, ...prev]);
+
       setToast({
         tone: "success",
         title: "Laporan berhasil dikirim!",
@@ -254,7 +301,7 @@ export default function ReportPage({ userName = "user", onNavigate }) {
                       url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     />
                     <Marker position={[coords.lat, coords.lng]} icon={incidentPinIcon}>
-                      <Popup>📍 Titik Kejadian Selected</Popup>
+                      <Popup>Titik Kejadian Terpilih</Popup>
                     </Marker>
                     <MapClickListener onSelectLocation={handleMapClick} />
                   </MapContainer>
@@ -288,7 +335,7 @@ export default function ReportPage({ userName = "user", onNavigate }) {
               </div>
             </div>
 
-            {/* FULL-WIDTH CARD 1: Waktu Kejadian (Extends to left edge aligned with Deskripsi) */}
+            {/* FULL-WIDTH CARD 1: Waktu Kejadian */}
             <div className="report-page__full-card">
               <div className="report-page__card">
                 <h3 className="report-page__card-title">Waktu Kejadian</h3>
@@ -334,7 +381,7 @@ export default function ReportPage({ userName = "user", onNavigate }) {
               </div>
             </div>
 
-            {/* FULL-WIDTH CARD 2: Bukti Pendukung (Opsional) (Extends to left edge aligned with Deskripsi) */}
+            {/* FULL-WIDTH CARD 2: Bukti Pendukung (Opsional) */}
             <div className="report-page__full-card">
               <div className="report-page__card">
                 <h3 className="report-page__card-title">Bukti Pendukung (Opsional)</h3>
@@ -368,6 +415,68 @@ export default function ReportPage({ userName = "user", onNavigate }) {
                 <span>{isSubmitting ? "Mengirim Laporan..." : "Kirim Laporan"}</span>
                 <Send size={16} color="#ffffff" />
               </button>
+            </div>
+
+            {/* FULL-WIDTH CARD 3: Riwayat Laporan User */}
+            <div className="report-page__full-card">
+              <div className="report-page__card report-page__history-card">
+                <div className="report-page__history-header">
+                  <div className="report-page__history-title-wrap">
+                    <History size={19} color="#b01a5b" />
+                    <h3 className="report-page__card-title">Riwayat Laporan Anda</h3>
+                  </div>
+                  <span className="report-page__history-count">
+                    {historyList.length} Laporan
+                  </span>
+                </div>
+
+                {historyList.length === 0 ? (
+                  <div className="report-page__history-empty">
+                    <p>Belum ada riwayat laporan yang dibuat.</p>
+                  </div>
+                ) : (
+                  <div className="report-page__history-list">
+                    {historyList.map((item) => (
+                      <div key={item.id} className="report-page__history-item">
+                        <div className="report-page__history-item-top">
+                          <div className="report-page__history-meta">
+                            <span className="report-page__history-category">
+                              {item.category}
+                            </span>
+                            <span
+                              className={`report-page__history-status report-page__history-status--${item.statusTone}`}
+                            >
+                              <CheckCircle2 size={12} style={{ marginRight: 4 }} />
+                              {item.status}
+                            </span>
+                          </div>
+                          <div className="report-page__history-time-info">
+                            <Calendar size={13} color="#6b5c66" />
+                            <span>{item.dateVal}</span>
+                            <Clock size={13} color="#6b5c66" style={{ marginLeft: 6 }} />
+                            <span>{item.timeVal}</span>
+                          </div>
+                        </div>
+
+                        <p className="report-page__history-desc">{item.description}</p>
+
+                        <div className="report-page__history-footer">
+                          <div className="report-page__history-location">
+                            <MapPin size={14} color="#b01a5b" style={{ flexShrink: 0 }} />
+                            <span>{item.locationAddress}</span>
+                          </div>
+                          {item.hasProof && (
+                            <div className="report-page__history-proof">
+                              <FileText size={13} color="#2563eb" />
+                              <span>Bukti terlampir</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </form>
         </main>
