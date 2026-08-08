@@ -24,7 +24,7 @@ import Sidebar from "../components/layout/Sidebar";
 import QuickCard from "../components/home/QuickCard";
 import Toast from "../components/common/Toast";
 import SelectGuardianModal from "../components/common/SelectGuardianModal";
-import SosButton from "../features/sos-emergency/components/SosButton";
+import SosButton from "../components/common/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { reverseGeocode, distanceInMeters, geocode, geocodeSearch } from "../services/locationService";

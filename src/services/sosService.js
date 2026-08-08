@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiConfig";
+import { apiClient } from "./apiConfig";
 
 export async function sendSosSignal({ lat, lng, userId }) {
   return apiClient.post("/sos/trigger", {

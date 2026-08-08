@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { sendSosSignal, buildSosSmsFallback } from "../services/sosService";
-import { SOS_HOLD_DURATION_MS } from "../../../utils/constants";
+import { sendSosSignal } from "../services/sosService";
+import { SOS_HOLD_DURATION_MS } from "../utils/constants";
 
 export function useSosTrigger({ position, userId } = {}) {
   const [phase, setPhase] = useState("idle");

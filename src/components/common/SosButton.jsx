@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Check } from "lucide-react";
-import { useSosTrigger } from "../hooks/userSosTrigger";
-import sosButtonImg from "../../../assets/images/sos-button.svg";
+import { useSosTrigger } from "../../hooks/useSosTrigger";
+import sosButtonImg from "../../assets/images/sos-button.svg";
 import "./SosButton.css";
 
 export default function SosButton({ position, userId, onSent }) {

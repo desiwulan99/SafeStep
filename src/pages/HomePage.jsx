@@ -7,7 +7,7 @@ import QuickCard from "../components/home/QuickCard";
 import ReportBanner from "../components/home/ReportBanner";
 import RecentActivity from "../components/home/RecentActivity";
 import Toast from "../components/common/Toast";
-import SosButton from "../features/sos-emergency/components/SosButton";
+import SosButton from "../components/common/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { getNearbySafePoints } from "../services/riskService";

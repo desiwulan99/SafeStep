@@ -26,7 +26,7 @@ import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 import QuickCard from "../components/home/QuickCard";
 import Toast from "../components/common/Toast";
-import SosButton from "../features/sos-emergency/components/SosButton";
+import SosButton from "../components/common/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import {
