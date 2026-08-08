@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 import { useSosTrigger } from "../../hooks/useSosTrigger";
 import sosButtonImg from "../../assets/images/sos-button.svg";
@@ -8,15 +8,21 @@ export default function SosButton({ position, userId, onSent }) {
   const { phase, progress, errorMessage, startHold, cancelHold, fire, reset } =
     useSosTrigger({ position, userId });
 
+  const onSentRef = useRef(onSent);
+  useEffect(() => {
+    onSentRef.current = onSent;
+  }, [onSent]);
+
   useEffect(() => {
     if (phase === "sent") {
-      onSent?.();
+      onSentRef.current?.();
       const t = setTimeout(reset, 4000);
       return () => clearTimeout(t);
     }
-  }, [phase, onSent, reset]);
+  }, [phase, reset]);
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e?.stopPropagation();
     if (phase === "idle" || phase === "holding") {
       fire();
     }

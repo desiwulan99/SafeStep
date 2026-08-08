@@ -24,6 +24,7 @@ export function useSosTrigger({ position, userId } = {}) {
   }, []);
 
   const fire = useCallback(async () => {
+    if (phase === "sending" || phase === "sent") return;
     clearTimers();
     setPhase("sending");
     setErrorMessage(null);
@@ -37,7 +38,7 @@ export function useSosTrigger({ position, userId } = {}) {
     } catch (_) {
       setPhase("sent");
     }
-  }, [position, userId]);
+  }, [phase, position, userId]);
 
   const startHold = useCallback(() => {
     if (phase === "sending" || phase === "sent") return;
