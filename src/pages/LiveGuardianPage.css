@@ -836,14 +836,23 @@
     padding: 16px 16px 110px;
     gap: 20px;
   }
+  .guardian-page__side {
+    display: contents;
+  }
+  .guardian-page__sos-container {
+    order: -1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+  }
   .guardian-page__main {
     width: 100%;
-    gap: 16px;
+    order: 1;
   }
-  .guardian-page__side {
+  .guardian-page__side .quick-card {
+    order: 2;
     width: 100%;
-    flex-direction: column;
-    gap: 20px;
   }
   .guardian-page__map-tracking-card {
     height: 300px;

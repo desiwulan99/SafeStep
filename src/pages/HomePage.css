@@ -86,16 +86,21 @@
     gap: 20px;
   }
 
-  .home-page__main {
-    width: 100%;
+  .home-page__side {
+    display: contents;
   }
 
-  .home-page__side {
+  .home-page__sos-container {
+    order: -1;
     width: 100%;
-    position: static;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .home-page__main {
+    width: 100%;
+    order: 1;
   }
 
   .home-page__cards {
@@ -103,6 +108,7 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 14px;
     width: 100%;
+    order: 2;
   }
 }
 

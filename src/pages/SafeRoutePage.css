@@ -359,15 +359,27 @@
     gap: 20px;
   }
 
+  .safe-route-page__side {
+    display: contents;
+  }
+
+  .safe-route-page__sos-container {
+    order: -1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
   .safe-route-page__main {
     width: 100%;
     gap: 16px;
+    order: 1;
   }
 
-  .safe-route-page__side {
+  .safe-route-page__side .quick-card {
+    order: 2;
     width: 100%;
-    flex-direction: column;
-    gap: 20px;
   }
 
   .safe-route-page__map-card {
