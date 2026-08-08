@@ -145,9 +145,11 @@ export default function SelectGuardianModal({
             />
             <input
               type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="Nomor HP / WhatsApp (misal: 08123456789)"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               className="select-guardian-modal__input"
             />
             <div className="select-guardian-modal__btn-row">

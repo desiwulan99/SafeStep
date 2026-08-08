@@ -373,9 +373,11 @@ export default function LiveGuardianPage({ userName = "user", onNavigate }) {
                     />
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="Nomor HP / WhatsApp (misal: 08123456789)"
                       value={newContactPhone}
-                      onChange={(e) => setNewContactPhone(e.target.value)}
+                      onChange={(e) => setNewContactPhone(e.target.value.replace(/\D/g, ""))}
                       className="guardian-page__form-input"
                     />
                     <div className="guardian-page__form-btn-row">
