@@ -68,3 +68,6 @@ src/
 └── utils/                   # Helper functions, validators, & constants
     └── constants.js
 ```
+
+SISTECH Group 9 FE - Desi Wulan Sari & Tasya Angellica Sugiharto
+
