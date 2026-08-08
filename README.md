@@ -58,3 +58,6 @@ src/
 ├── services/                # Konfigurasi API client & endpoint
 ├── utils/                   # Helper functions, validators, & constants
 └── pages/                   # Halaman / routing utama
+```
+
+SISTECH Group 9 FE - Desi Wulan Sari & Tasya Angellica Sugiharto
