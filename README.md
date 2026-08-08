@@ -46,15 +46,25 @@ SafeStep adalah platform berbasis Web Responsive yang dirancang untuk meningkatk
 
 ```text
 src/
-├── assets/                  # Icons, images, dan global styles
-├── components/              # Shared components (UI kit, Layout, Maps)
-├── features/                # Modul utama berdasarkan PRD
-│   ├── safe-route/          # Komponen & logika Safe Route Recommendation
-│   ├── sos-emergency/       # Komponen & logika Emergency SOS
-│   ├── anonymous-reporting/ # Komponen & logika Pelaporan Anonim
-│   ├── live-guardian/       # Komponen & logika Live Tracking & Safe Point
-│   └── partner-dashboard/   # Komponen & logika Dashboard Mitra / Dispatcher
-├── hooks/                   # Custom hooks (e.g., useGeolocation)
-├── services/                # Konfigurasi API client & endpoint
-├── utils/                   # Helper functions, validators, & constants
-└── pages/                   # Halaman / routing utama
+├── assets/                  # Icons, gambar SVG/PNG, dan asset statis
+│   └── images/
+├── components/              # Komponen UI modular
+│   ├── common/              # Komponen reusable (SosButton, Toast, SelectGuardianModal, QuickCard)
+│   ├── layout/              # Komponen struktur halaman (Navbar, Sidebar)
+│   ├── home/                # Komponen spesifik Beranda (MapSection, RecentActivity, ReportBanner)
+│   └── maps/                # Komponen pemetaan (MapWidget)
+├── hooks/                   # Custom React Hooks (useGeolocation, useReverseGeocode, useSosTrigger)
+├── pages/                   # Halaman utama aplikasi (SPA Views)
+│   ├── HomePage.jsx & HomePage.css         # Halaman Beranda Utama
+│   ├── SafeRoutePage.jsx & SafeRoutePage.css # Halaman Peta Aman & Insights Rute
+│   ├── LiveGuardianPage.jsx & LiveGuardianPage.css # Halaman Live Guardian & Tracking
+│   └── ReportPage.jsx & ReportPage.css     # Halaman Pelaporan Anonim
+├── services/                # Konfigurasi API client & endpoint service
+│   ├── apiConfig.js         # API Fetch client wrapper
+│   ├── riskService.js       # MLOps Risk Prediction API & Overpass POIs
+│   ├── locationService.js   # Nominatim Reverse & Forward Geocoding
+│   ├── guardianService.js   # Live Guardian tracking & chat session
+│   └── sosService.js        # Emergency SOS trigger service
+└── utils/                   # Helper functions, validators, & constants
+    └── constants.js
+```
