@@ -35,10 +35,10 @@ SafeStep adalah platform berbasis Web Responsive yang dirancang untuk meningkatk
 
 ## Tech Stack & Dependencies
 
-- **Frontend Framework:** React.js / Vite
-- **Styling:** CSS3 / Tailwind CSS
-- **Maps & Geolocation:** Leaflet.js / Mapbox API & Browser Geolocation API
-- **Deployment Platform:** Vercel / Netlify
+- **Frontend Framework:** React 19 / Vite
+- **Styling:** Vanilla CSS3 (Custom Design System & CSS Variables)
+- **Maps & Geolocation:** Leaflet.js / OpenStreetMap & Browser Geolocation API
+- **Deployment Platform:** Vercel
 
 ---
 
