@@ -28,10 +28,32 @@ import SosButton from "../features/sos-emergency/components/SosButton";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useReverseGeocode } from "../hooks/useReverseGeocode";
 import { reverseGeocode, distanceInMeters, geocode, geocodeSearch } from "../services/locationService";
-import { getNearbySafePoints, getSafetyRiskScore } from "../services/riskService";
+import { getNearbySafePoints, getSafetyRiskScore, predictSafetyRisk } from "../services/riskService";
 import { sendRouteToGuardian, sendSosToGuardian, getGuardianSession } from "../services/guardianService";
 import mascotImg from "../assets/images/mascot.svg";
 import "./SafeRoutePage.css";
+
+const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+const heatmapPointsBase = [
+  { lat: -6.1754, lng: 106.8272, name: "Kawasan Monas", descBase: "Area wisata monumen nasional." },
+  { lat: -6.2085, lng: 106.8454, name: "Stasiun Manggarai", descBase: "Hub transportasi kereta api komuter." },
+  { lat: -6.2297, lng: 106.7973, name: "Kawasan Bisnis Sudirman", descBase: "Pusat bisnis perkantoran utama." },
+  { lat: -6.5950, lng: 106.7940, name: "Kebun Raya Bogor", descBase: "Area sekitar gerbang Kebun Raya." },
+  { lat: -6.5217, lng: 106.7760, name: "Kec. Tanah Sareal", descBase: "Wilayah perumahan dan jalan penghubung." },
+  { lat: -6.1856, lng: 106.8122, name: "Stasiun Tanah Abang", descBase: "Kawasan pasar dan stasiun transit padat." },
+  { lat: -6.1376, lng: 106.8143, name: "Kota Tua Jakarta", descBase: "Kawasan cagar budaya bersejarah." },
+  { lat: -6.2443, lng: 106.7982, name: "Kawasan Blok M", descBase: "Terminal bus, MRT, dan pusat kuliner malam." }
+];
+
+const getLocalISODateTime = (date = new Date()) => {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+};
 
 const startMarkerIcon = L.divIcon({
   className: "map-pin map-pin--user",
@@ -74,6 +96,78 @@ function MapBoundsUpdater({ routesData }) {
       }
     }
   }, [routesData, map]);
+  return null;
+}
+
+function HeatmapLayer({ heatmapData, showHeatmap }) {
+  const map = useMap();
+  const heatLayerRef = useRef(null);
+  const circleGroupRef = useRef(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Clean up previous layers
+    if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
+    if (circleGroupRef.current) {
+      map.removeLayer(circleGroupRef.current);
+      circleGroupRef.current = null;
+    }
+
+    if (!showHeatmap || !heatmapData || heatmapData.length === 0) return;
+
+    // 1. Canvas heat gradient via leaflet.heat CDN plugin
+    const heatPoints = heatmapData.map((pt) => [pt.lat, pt.lng, (pt.risk_score || 50) / 100]);
+    const heatLayerFn = L.heatLayer || window.L?.heatLayer;
+    if (heatLayerFn) {
+      try {
+        heatLayerRef.current = heatLayerFn(heatPoints, {
+          radius: 40,
+          blur: 20,
+          maxZoom: 16,
+          gradient: { 0.15: "#10b981", 0.45: "#f59e0b", 0.75: "#ef4444" },
+        }).addTo(map);
+      } catch (e) {
+        console.warn("L.heatLayer failed, using circle fallback:", e);
+      }
+    }
+
+    // 2. Glowing circles + interactive marker popups as robust fallback
+    circleGroupRef.current = L.layerGroup().addTo(map);
+    heatmapData.forEach((point) => {
+      const color = point.risk === "High" ? "#ef4444" : point.risk === "Medium" ? "#f59e0b" : "#10b981";
+
+      L.circle([point.lat, point.lng], {
+        radius: 800, color: "transparent", fillColor: color, fillOpacity: 0.12, interactive: false,
+      }).addTo(circleGroupRef.current);
+
+      L.circle([point.lat, point.lng], {
+        radius: 400, color: "transparent", fillColor: color, fillOpacity: 0.22, interactive: false,
+      }).addTo(circleGroupRef.current);
+
+      L.circleMarker([point.lat, point.lng], {
+        radius: 8, color: "#ffffff", fillColor: color, fillOpacity: 1, weight: 2,
+      }).addTo(circleGroupRef.current)
+        .bindPopup(
+          `<div style="font-family:inherit;font-size:12px;width:190px;">` +
+          `<strong style="font-size:13px;color:#1e293b;">\uD83D\uDD25 ${point.name}</strong><br/>` +
+          `<div style="margin-top:6px;background:${color}15;padding:4px 8px;border-radius:6px;">` +
+          `Skor Risiko: <b style="color:${color};font-size:14px;">${point.risk_score.toFixed(1)}</b>/100 (${point.risk})</div>` +
+          `<p style="margin:8px 0 0;color:#475569;font-size:11px;line-height:1.4;">${point.desc}</p>` +
+          `<div style="margin-top:8px;font-size:10px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;">` +
+          `${point.is_mock ? "\u26A1 Simulasi Offline" : "\uD83D\uDFE2 MLOps API Aktif"}</div></div>`
+        );
+    });
+
+    return () => {
+      if (heatLayerRef.current) { map.removeLayer(heatLayerRef.current); heatLayerRef.current = null; }
+      if (circleGroupRef.current) { map.removeLayer(circleGroupRef.current); circleGroupRef.current = null; }
+    };
+  }, [map, showHeatmap, heatmapData]);
+
   return null;
 }
 
@@ -204,6 +298,21 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
   const [safePoints, setSafePoints] = useState([]);
 
+  // Temporal filter state
+  const [selectedDateTime, setSelectedDateTime] = useState(getLocalISODateTime());
+
+  // Heatmap state
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [heatmapData, setHeatmapData] = useState([]);
+  const [isLoadingHeatmap, setIsLoadingHeatmap] = useState(false);
+
+  // Derived temporal values from selected datetime
+  const dateObj = new Date(selectedDateTime);
+  const selectedHour = dateObj.getHours();
+  const jsDay = dateObj.getDay();
+  const selectedDay = jsDay === 0 ? 6 : jsDay - 1;
+  const selectedMonth = dateObj.getMonth() + 1;
+
   const mapCenter = position
     ? [position.lat, position.lng]
     : startCoords
@@ -228,6 +337,36 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
       }
     });
   }, [position, startCoords]);
+
+  // Fetch heatmap risk data from MLOps API for each hotspot
+  const loadHeatmapRisks = async () => {
+    setIsLoadingHeatmap(true);
+    try {
+      const promises = heatmapPointsBase.map(async (point) => {
+        const res = await predictSafetyRisk(point.lat, point.lng, selectedHour, selectedDay, selectedMonth);
+        return {
+          ...point,
+          risk: res.risk_level,
+          risk_score: res.risk_score,
+          is_mock: res.is_mock,
+          desc: point.descBase + ` (Dianalisis untuk pukul ${selectedHour.toString().padStart(2, "0")}:00 hari ${DAYS[selectedDay]})`
+        };
+      });
+      const results = await Promise.all(promises);
+      setHeatmapData(results);
+    } catch (error) {
+      console.error("Gagal memperbarui data heatmap:", error);
+    } finally {
+      setIsLoadingHeatmap(false);
+    }
+  };
+
+  // Update heatmap when temporal filters or toggle changes
+  useEffect(() => {
+    if (showHeatmap) {
+      loadHeatmapRisks();
+    }
+  }, [selectedHour, selectedDay, selectedMonth, showHeatmap]);
 
   const handleRequestGPS = () => {
     if (navigator.geolocation) {
@@ -554,7 +693,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
 
         const predictions = await Promise.all(
           samplePoints.map(([lat, lng]) =>
-            getSafetyRiskScore(lat, lng, new Date().toISOString())
+            getSafetyRiskScore(lat, lng, new Date(selectedDateTime).toISOString())
           )
         );
 
@@ -614,6 +753,8 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
           duration: route.duration,
           path,
           score: maxScore,
+          startScore: predictions[0]?.risk_score || maxScore,
+          endScore: predictions[predictions.length - 1]?.risk_score || maxScore,
           levelKey,
           levelLabel,
           levelDesc,
@@ -713,6 +854,37 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
     setPendingAction(null);
   };
 
+  // Safety analysis based on ML risk score + temporal context
+  const getSafetyAnalysis = (routeScore, hour) => {
+    let analysis = "";
+    let recommendation = "";
+    let scoreColor = "#10b981";
+
+    if (routeScore >= 70) {
+      scoreColor = "#e33a57";
+      analysis = `Rute komuter memiliki tingkat kerawanan TINGGI (skor: ${routeScore.toFixed(1)}/100).`;
+      if (hour >= 20 || hour <= 4) {
+        recommendation = "Kombinasi jam malam dan wilayah berisiko tinggi sangat berbahaya. Disarankan menggunakan taksi/ojek resmi dan aktifkan Live Guardian.";
+      } else {
+        recommendation = "Area ini terpantau rawan kejahatan jalanan. Simpan barang berharga dengan aman, tetap di rute utama, hindari lorong sepi.";
+      }
+    } else if (routeScore >= 40) {
+      scoreColor = "#f59e0b";
+      analysis = `Rute komuter memiliki tingkat kerawanan SEDANG (skor: ${routeScore.toFixed(1)}/100).`;
+      if (hour >= 18 || hour <= 5) {
+        recommendation = "Penerangan jalan minim di beberapa bagian rute malam hari. Berjalanlah di tempat terang, pastikan daya baterai ponsel.";
+      } else {
+        recommendation = "Rute cukup kondusif. Tetap waspada terhadap pencopetan di area transit padat.";
+      }
+    } else {
+      scoreColor = "#10b981";
+      analysis = `Rute komuter terpantau AMAN dan minim risiko (skor: ${routeScore.toFixed(1)}/100).`;
+      recommendation = "Pengawasan aktif, lampu jalan memadai, laporan kriminalitas rendah. Anda dapat berkendara dengan tenang.";
+    }
+
+    return { analysis, recommendation, scoreColor };
+  };
+
   // Selected route bindings for UI
   const selectedRoute = routesData[selectedRouteIdx] || null;
   const distanceVal = selectedRoute ? selectedRoute.distance : 0;
@@ -724,6 +896,11 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
   const durationLabelText = selectedRoute 
     ? `${Math.round(durationVal / 60)} mnt` 
     : "";
+
+  // Commute insights derived from selected route + temporal context
+  const commuteInsights = selectedRoute
+    ? getSafetyAnalysis(selectedRoute.score, selectedHour)
+    : null;
 
   return (
     <div className="safe-route-page">
@@ -911,6 +1088,23 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
             </button>
           </div>
 
+          {/* Temporal Filter Card */}
+          <div className="safe-route-page__datetime-card">
+            <div className="safe-route-page__datetime-header">
+              <span className="safe-route-page__datetime-title">⏰ Waktu Keberangkatan</span>
+              <span className="safe-route-page__datetime-badge">Dinamis</span>
+            </div>
+            <input
+              type="datetime-local"
+              className="safe-route-page__datetime-input"
+              value={selectedDateTime}
+              onChange={(e) => setSelectedDateTime(e.target.value)}
+            />
+            <p className="safe-route-page__datetime-helper">
+              Menganalisis risiko: <strong>{DAYS[selectedDay]}</strong> pukul <strong>{selectedHour.toString().padStart(2, "0")}:00</strong> (Bulan {MONTHS[selectedMonth - 1]})
+            </p>
+          </div>
+
           <div className="safe-route-page__map-card">
             <MapContainer
               center={mapCenter}
@@ -922,6 +1116,7 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               />
+              <HeatmapLayer heatmapData={heatmapData} showHeatmap={showHeatmap} />
               {routesData.length > 0 ? (
                 routesData
                   .map((route, originalIdx) => ({ route, originalIdx }))
@@ -968,6 +1163,21 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
               <MapRouteClickListener onSelectPoint={handleMapClick} />
               {routesData.length > 0 && <MapBoundsUpdater routesData={routesData} />}
             </MapContainer>
+
+            <div className="safe-route-page__heatmap-controls">
+              <button
+                type="button"
+                className={`safe-route-page__heatmap-toggle ${showHeatmap ? "safe-route-page__heatmap-toggle--active" : ""}`}
+                onClick={() => setShowHeatmap(!showHeatmap)}
+              >
+                🔥 {showHeatmap ? "Sembunyikan Heatmap" : "Tampilkan Heatmap"}
+              </button>
+            </div>
+            {isLoadingHeatmap && (
+              <div className="safe-route-page__heatmap-loading">
+                <span>Memproses Heatmap Risiko Wilayah...</span>
+              </div>
+            )}
 
             {showSosOverlay && (
               <div className="safe-route-page__map-overlay">
@@ -1033,6 +1243,83 @@ export default function SafeRoutePage({ userName = "user", onNavigate }) {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Safe Commute Insights Panel */}
+          {commuteInsights && selectedRoute && (
+            <div className="safe-route-page__insights-card">
+              <div className="safe-route-page__insights-header">
+                <div className="safe-route-page__insights-title-group">
+                  <span className="safe-route-page__insights-shield">🛡️</span>
+                  <h3 className="safe-route-page__insights-title">Safe Commute Insights</h3>
+                </div>
+                <span
+                  className="safe-route-page__insights-badge"
+                  style={{
+                    backgroundColor: commuteInsights.scoreColor + "18",
+                    color: commuteInsights.scoreColor,
+                    border: `1.5px solid ${commuteInsights.scoreColor}`,
+                  }}
+                >
+                  Risiko: {selectedRoute.levelLabel}
+                </span>
+              </div>
+
+              <p className="safe-route-page__insights-temporal">
+                Evaluasi untuk hari <strong>{DAYS[selectedDay]}</strong> pukul{" "}
+                <strong>{selectedHour.toString().padStart(2, "0")}:00</strong>{" "}
+                (Bulan {MONTHS[selectedMonth - 1]})
+              </p>
+
+              <div className="safe-route-page__insights-scores">
+                <div className="safe-route-page__score-card">
+                  <div className="safe-route-page__score-label">
+                    <span style={{ color: "#2563eb" }}>●</span> Titik Awal
+                  </div>
+                  <div className="safe-route-page__score-value">
+                    {selectedRoute.startScore.toFixed(1)}
+                    <span className="safe-route-page__score-max">/100</span>
+                  </div>
+                  <div className="safe-route-page__progress-bar-bg">
+                    <div
+                      className="safe-route-page__progress-bar-fill"
+                      style={{
+                        width: `${selectedRoute.startScore}%`,
+                        backgroundColor: selectedRoute.startScore >= 70 ? "#e33a57" : selectedRoute.startScore >= 40 ? "#f59e0b" : "#10b981",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="safe-route-page__score-card">
+                  <div className="safe-route-page__score-label">
+                    <span style={{ color: "#a81b58" }}>●</span> Titik Tujuan
+                  </div>
+                  <div className="safe-route-page__score-value">
+                    {selectedRoute.endScore.toFixed(1)}
+                    <span className="safe-route-page__score-max">/100</span>
+                  </div>
+                  <div className="safe-route-page__progress-bar-bg">
+                    <div
+                      className="safe-route-page__progress-bar-fill"
+                      style={{
+                        width: `${selectedRoute.endScore}%`,
+                        backgroundColor: selectedRoute.endScore >= 70 ? "#e33a57" : selectedRoute.endScore >= 40 ? "#f59e0b" : "#10b981",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="safe-route-page__insights-analysis">
+                <p className="safe-route-page__insights-analysis-text">
+                  📊 {commuteInsights.analysis}
+                </p>
+                <p className="safe-route-page__insights-recommendation-text">
+                  💡 {commuteInsights.recommendation}
+                </p>
               </div>
             </div>
           )}
