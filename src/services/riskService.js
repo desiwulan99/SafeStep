@@ -15,10 +15,17 @@ export async function getAreaRiskSummary({ lat, lng }) {
 
 export async function fetchRealOverpassSafePoints(lat, lng, radius = 2000) {
   try {
-    const query = `[out:json][timeout:6];(node["amenity"~"police|hospital|clinic|pharmacy|fuel|convenience"](around:${radius},${lat},${lng});way["amenity"~"police|hospital|clinic|pharmacy|fuel|convenience"](around:${radius},${lat},${lng}););out center 8;`;
+    const query = `[out:json][timeout:3];(node["amenity"~"police|hospital|clinic|pharmacy|fuel|convenience"](around:${radius},${lat},${lng});way["amenity"~"police|hospital|clinic|pharmacy|fuel|convenience"](around:${radius},${lat},${lng}););out center 8;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
     
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal
+    }).finally(() => clearTimeout(timer));
+
     if (!res.ok) return [];
     
     const data = await res.json();
@@ -49,7 +56,6 @@ export async function fetchRealOverpassSafePoints(lat, lng, radius = 2000) {
       };
     }).filter(pt => pt.lat && pt.lng);
   } catch (err) {
-    console.warn("Overpass API fallback notice:", err);
     return [];
   }
 }
@@ -89,17 +95,6 @@ export function generateDynamicSafePoints(lat, lng) {
 
 export async function getNearbySafePoints({ lat, lng, radius = 2000 }) {
   if (!lat || !lng) return generateDynamicSafePoints(-6.2088, 106.8456);
-
-  try {
-    const backendData = await apiClient.get(
-      `/safe-points?lat=${lat}&lng=${lng}&radius=${radius}`
-    );
-    if (Array.isArray(backendData) && backendData.length > 0) {
-      return backendData;
-    }
-  } catch (err) {
-    // Backend endpoint not available, fallback to real OSM Overpass POIs
-  }
 
   // Fetch real OpenStreetMap POIs (police, hospital, clinic, convenience, fuel) within radius
   const realPois = await fetchRealOverpassSafePoints(lat, lng, radius);
